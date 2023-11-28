@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "novel-studio",
+    "name": "Novel Studio",
     "slug": "novel-studio",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,22 +9,49 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "net.webbel.nvstudio",
+      "usesAppleSignIn": true,
+      "buildNumber": "0.1.3"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "net.webbel.nvstudio"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "nvstudio",
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "6273505b-7eae-4cca-a550-3a1409cd00bb"
+      }
+    },
+    "owner": "zhoun990",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6273505b-7eae-4cca-a550-3a1409cd00bb"
     }
   }
 }
