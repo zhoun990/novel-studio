@@ -13,7 +13,7 @@
 		"build:pv": "eas build --profile preview --platform ios",
 		"submit": "eas submit --platform ios",
 		"update": "eas update --platform ios",
-		"commit": "cmd /V /C \"for /f %i in ('jq -r \".expo.version\" app.json') do set version=%i && git add . && git commit -m \"Build commit for version !version!\""
+		"commit": "cmd /V /C \"for /f %i in ('jq -r \".expo.ios.buildNumber\" app.json') do set version=%i && git add . && git commit -m \"Build commit for version !version!\""
 	},
 	"dependencies": {
 		"@e-state/react": "^0.1.10",
