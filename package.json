@@ -9,7 +9,7 @@
 		"web": "expo start --web",
 		"gen": "supabase gen types typescript --project-id pxshvmbgzfneqkcaiyky --schema public > src/utils/database.types.ts",
 		"build:dev": "eas build --profile development --platform ios",
-		"build": "eas build --profile production --platform ios --auto-submit && git add . && git commit -m 'Build commit'",
+		"build": "eas build --profile production --platform ios --auto-submit && git add . && git commit -m `ver. $(node -p -e \"require('./app.json').expo.ios.buildNumber\")`",
 		"build:pv": "eas build --profile preview --platform ios",
 		"submit": "eas submit --platform ios",
 		"update": "eas update --platform ios"
