@@ -9,11 +9,11 @@
 		"web": "expo start --web",
 		"gen": "supabase gen types typescript --project-id pxshvmbgzfneqkcaiyky --schema public > src/utils/database.types.ts",
 		"build:dev": "eas build --profile development --platform ios",
-		"build": "for /f %i in ('jq -r \".expo.version\" app.json') do set version=%i && eas build --profile production --platform ios --auto-submit && git add . && git commit -m \"Build commit for version %version%\"",
+		"build": "cmd /C eas build --profile production --platform ios --auto-submit && yarn commit",
 		"build:pv": "eas build --profile preview --platform ios",
 		"submit": "eas submit --platform ios",
 		"update": "eas update --platform ios",
-		"commit": "cmd /V /C \"for /f %i in ('jq -r \".expo.ios.buildNumber\" app.json') do set version=%i && git add . && git commit -m \"Build commit for version !version!\""
+		"commit": "cmd /V /C \"for /f %i in ('jq -r \".expo.ios.buildNumber\" app.json') do set version=%i && git add . && git commit -m \"ver. !version!\""
 	},
 	"dependencies": {
 		"@e-state/react": "^0.1.10",

@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -18,10 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "net.webbel.nvs",
       "usesAppleSignIn": true,
-      "buildNumber": "0.1.5",
-      "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": true
-      }
+      "buildNumber": "0.1.6"
     },
     "android": {
       "adaptiveIcon": {
