@@ -5,15 +5,30 @@ import { router } from "expo-router";
 import { ReactNode } from "react";
 import { Button, Image, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 
 export default function App() {
 	const { session } = useEstate("main");
+	const headerHeight = useHeaderHeight();
+	const { top, bottom } = useSafeAreaInsets();
 
 	return (
-		<View style={{ flex: 1, position: "relative" }}>
-			
-
-			<View style={{ paddingTop: 4, paddingBottom: 4, alignSelf: "stretch" }}>
+		<View
+			style={{
+				flex: 1,
+				position: "relative",
+				backgroundColor: "#000015",
+				paddingTop: top+headerHeight,
+			}}
+		>
+			<View
+				style={{
+					paddingTop: 4,
+					paddingBottom: 4,
+					alignSelf: "stretch",
+					// backgroundColor: "green",
+				}}
+			>
 				<Button
 					title={session?.user ? "サインアウト" : "サインイン"}
 					onPress={async () => {

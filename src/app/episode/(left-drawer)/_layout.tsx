@@ -2,7 +2,7 @@ import Text from "@/components/CustomText";
 import { useEstate } from "@/utils/estate";
 import { Slot, router, useLocalSearchParams } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { Dimensions, FlatList, Pressable, View } from "react-native";
+import { Alert, Dimensions, FlatList, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createEpisode } from "@/functions/createEpisode";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
@@ -16,13 +16,13 @@ export default function HomeLayout() {
 				drawerActiveBackgroundColor: "transparent",
 				drawerType: "front",
 				swipeEdgeWidth: WindowWidth / 2,
-				drawerStyle: { width: WindowWidth * 0.8, backgroundColor: "black" },
+				drawerStyle: { width: WindowWidth * 0.8, backgroundColor: "#000015" },
 				// keyboardDismissMode: "none",
-				sceneContainerStyle: { backgroundColor: "black" }
+				sceneContainerStyle: { backgroundColor: "#000015" },
 			}}
 			drawerContent={LeftDrawer}
 		>
-			<Drawer.Screen name="(left-drawer)" />
+			<Drawer.Screen name="[episode_id]" />
 		</Drawer>
 	);
 }
@@ -40,7 +40,7 @@ const LeftDrawer = ({ navigation }: DrawerContentComponentProps) => {
 					<Pressable
 						onPress={() => {
 							router.replace({
-								pathname: "/[novel_id]/[episode_id]",
+								pathname: "/episode/[episode_id]",
 								params: { novel_id, episode_id: item },
 							});
 							navigation.closeDrawer();
@@ -52,12 +52,12 @@ const LeftDrawer = ({ navigation }: DrawerContentComponentProps) => {
 							numberOfLines={1}
 							ellipsizeMode="tail"
 						>
-							{episodes[String(novel_id)]?.[item]
-								? episodes[String(novel_id)][item].title
+							{episodes[item]
+								? episodes[item].title
 								: "Not Found"}
 						</Text>
 						<Text numberOfLines={1} ellipsizeMode="tail">
-							{episodes[String(novel_id)]?.[item]?.text
+							{episodes[item]?.text
 								?.replace(/\n/g, "")
 								.substring(0, 50)}
 						</Text>
@@ -74,7 +74,14 @@ const LeftDrawer = ({ navigation }: DrawerContentComponentProps) => {
 				ListFooterComponent={() => (
 					<Pressable
 						onPress={() => {
-							createEpisode(String(novel_id), () => {});
+							Alert.prompt("エピソードの追加", undefined, (title) => {
+								createEpisode({
+									novel_id: String(novel_id),
+									title,
+									tags: ["system_episode"],
+									// onLoading: setLoading,
+								});
+							});
 						}}
 						style={{ padding: 10, backgroundColor: "gray" }}
 					>

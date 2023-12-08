@@ -95,9 +95,9 @@ export default function Auth() {
 			router.replace("/");
 		}
 	}, [session]);
-	const signinRecomendation = () => {
+	const signinRecommendation = () => {
 		setEstate({
-			signinRecomendation: true,
+			signinRecommendation: true,
 		});
 	};
 	return (
@@ -105,28 +105,28 @@ export default function Auth() {
 			{/* <Button onPress={()=>performOAuth('apple')} title="Sign in with Apple" /> */}
 			<Button
 				onPress={() => {
-					signinRecomendation();
+					signinRecommendation();
 					performOAuth("google");
 				}}
 				title="Sign in with Google"
 			/>
 			<Button
 				onPress={() => {
-					signinRecomendation();
+					signinRecommendation();
 					sendMagicLink();
 				}}
 				title="Send Magic Link"
 			/>
 			<Button
 				onPress={() => {
-					signinRecomendation();
+					signinRecommendation();
 					signInWithOtp;
 				}}
 				title="signInWithOtp"
 			/>
 			<Button
 				onPress={() => {
-					signinRecomendation();
+					signinRecommendation();
 					router.replace("/");
 				}}
 				title="サインインせずに続行"

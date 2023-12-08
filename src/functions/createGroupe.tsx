@@ -4,15 +4,15 @@ import { supabase } from "@/utils/supabase";
 import { setEstates } from "@/utils/estate";
 import { n } from "@/utils/n";
 
-export function createEpisode({
+export function createGroupe({
 	novel_id,
 	title,
+	color,
 	onLoading = () => {},
-	tags = [],
 }: {
 	novel_id: string;
 	title: string;
-	tags?: string[];
+	color?: string;
 	onLoading?: (isLoading: boolean) => void;
 }) {
 	try {
@@ -27,23 +27,17 @@ export function createEpisode({
 		if (typeof novel_id !== "string")
 			throw new Error("IDが文字列ではありません！");
 		setEstates.persist({
-			episodes: async (
-				episodes,
-				{ novels, episodeGroups, selectedGroupe },
-				{ main }
-			) => {
+			episodeGroups: async (groups, { novels }, { main }) => {
 				try {
 					if (!novels[novel_id]) throw new Error("id invalid");
-					// if (!groupe || !episodeGroups[groupe]) groupe = null;
-					const groupe = selectedGroupe[novel_id] || null;
-					if (main.session?.user.id === novels[String(novel_id)]?.user_id) {
+
+					if (main.session?.user.id === novels[novel_id]?.user_id) {
 						const { error, data } = await supabase
-							.from("episodes")
+							.from("episode_groups")
 							.insert({
 								title,
 								novel_id,
-								tags,
-								groupe,
+								episodes_list: [],
 							})
 							.select("*")
 							.single();
@@ -54,14 +48,14 @@ export function createEpisode({
 						await supabase
 							.from("novels")
 							.update({
-								episodes_list: [...novels[novel_id]?.episodes_list, data.id],
+								groups: [...novels[novel_id]?.groups, data.id],
 							})
 							.eq("id", novel_id)
-							.select("episodes_list")
+							.select("groups")
 							.single()
 							.then(({ data, error }) => {
-								if (!error && data.episodes_list && novels[novel_id]) {
-									novels[novel_id].episodes_list = data.episodes_list;
+								if (!error && data.groups && novels[novel_id]) {
+									novels[novel_id].groups = data.groups;
 								} else {
 									console.error(
 										"^_^ Log \n file: index.tsx:63 \n error:",
@@ -71,43 +65,44 @@ export function createEpisode({
 								}
 							});
 
-						episodes[data.id] = data;
-
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: data.id },
+						groups[data.id] = data;
+						setEstates.persist({
+							selectedGroupe: (cv) => {
+								cv[novel_id] = data.id;
+								return cv;
+							},
 						});
 					} else {
 						const id = require("uuid").v4();
 
-						episodes[id] = {
+						groups[id] = {
 							title,
 							novel_id,
-							tags: [],
-							character_count: 0,
 							created_at: new Date().toISOString(),
 							id,
-							text: "",
-							updated_at: new Date().toISOString(),
-							groupe,
+							color: null,
+							episodes_list: [],
+							// updated_at: new Date().toISOString(),
 							user_id: null,
 						};
 						novels[novel_id].updated_at = new Date().toISOString();
-						novels[novel_id].episodes_list.push(id);
-						if (groupe) episodeGroups[groupe].episodes_list.push(id);
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: id },
+						if (!novels[novel_id].groups) novels[novel_id].groups = [id];
+						else novels[novel_id].groups.push(id);
+						setEstates.persist({
+							selectedGroupe: (cv) => {
+								cv[novel_id] = id;
+								return cv;
+							},
 						});
 					}
-					return [Object.assign({}, episodes), {}, { persist: { novels } }];
+					return [Object.assign({}, groups), {}, { persist: { novels } }];
 				} catch (error) {
 					if (error instanceof Error) {
 						Alert.alert(error.message);
 					} else {
 						console.log("err", error);
 					}
-					return episodes;
+					return groups;
 				}
 			},
 		});

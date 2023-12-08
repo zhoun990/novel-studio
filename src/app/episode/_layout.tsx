@@ -16,7 +16,7 @@ export default function Layout() {
 				keyboardDismissMode: "none",
 			}}
 		>
-			<Drawer.Screen name="[novel_id]" options={{ }} />
+			<Drawer.Screen name="(left-drawer)" options={{ }} />
 		</Drawer>
 	);
 }

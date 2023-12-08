@@ -7,7 +7,7 @@ import {
 	Dimensions,
 } from "react-native";
 import Text from "@/components/CustomText";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
 	Easing,
@@ -20,6 +20,7 @@ import Animated, {
 	withTiming,
 } from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { n } from "@/utils/n";
 
 const WindowWidth = Dimensions.get("window").width;
 
@@ -36,6 +37,9 @@ export const SwipeableItem = <T,>({
 	hold,
 	height: itemHeight,
 	onScroll,
+	dndEnabled,
+	removeEnabled,
+	ItemSeparatorComponent,
 }: {
 	children: React.ReactNode;
 	item: T;
@@ -50,16 +54,16 @@ export const SwipeableItem = <T,>({
 	height: number;
 	hold: boolean;
 	onScroll: (translationY: number, updateBase?: boolean) => void;
+	dndEnabled: boolean;
+	removeEnabled: boolean;
+	ItemSeparatorComponent: (props: { index: number }) => ReactNode;
 }) => {
-	const { novel_id } = useLocalSearchParams();
-
 	const [offset, setOffset] = useState(0);
 	const [deleting, setDeleting] = useState(false);
 	const [isLongPress, setIsLongPress] = useState(false);
 	const [currentPos, setCurrentPos] = useState(i);
 	const x = useRef(0);
 	const y = useRef(0);
-	// const scrollYOffset = useRef(0);
 	const movement = useRef(0);
 	const translationX = useSharedValue(0);
 	const translationY = useSharedValue(0);
@@ -77,23 +81,28 @@ export const SwipeableItem = <T,>({
 					}),
 				},
 				{
-					translateY: isLongPress
-						? withSpring(
-								translationY.value + (currentPos - i || 0) * itemHeight,
-								{
-									mass: 1,
-									stiffness: 200,
-									damping: 70,
-								}
-						  )
-						: withTiming(
-								translationY.value + (absolutePos - i || 0) * itemHeight,
-								{
-									duration: 400,
-								}
-						  ),
+					translateY:
+						dndEnabled && isLongPress
+							? withSpring(
+									translationY.value + (currentPos - i || 0) * itemHeight,
+									{
+										mass: 1,
+										stiffness: 200,
+										damping: 70,
+									}
+							  )
+							: withTiming(
+									translationY.value + (absolutePos - i || 0) * itemHeight,
+									{
+										duration: 400,
+									}
+							  ),
 				},
-				{ scale: withTiming(isLongPress ? 1.02 : 1, { duration: 100 }) },
+				{
+					scale: withTiming(dndEnabled && isLongPress ? 1.02 : 1, {
+						duration: 100,
+					}),
+				},
 			],
 		};
 	});
@@ -152,13 +161,16 @@ export const SwipeableItem = <T,>({
 					movement.current += Math.abs(e.translationX);
 					y.current = e.translationY;
 
-					if (isLongPress) {
+					if (dndEnabled && isLongPress) {
 						translationY.value = y.current;
 						const ap = Math.round(y.current / itemHeight) + currentPos;
 						if (absolutePos !== ap) {
 							onPositionChange?.(item, ap);
 						}
-					} else if (Math.abs(e.velocityX) > Math.abs(e.velocityY)) {
+					} else if (
+						removeEnabled &&
+						Math.abs(e.velocityX) > Math.abs(e.velocityY)
+					) {
 						if (offset <= -constantsWidth)
 							x.current = Math.min(
 								0,
@@ -171,7 +183,7 @@ export const SwipeableItem = <T,>({
 							);
 						translationX.value = x.current;
 					} else {
-						onScroll(e.translationY + e.velocityY / 10);
+						onScroll(e.translationY + e.velocityY * 0.05);
 					}
 				})
 				.onEnd(() => {
@@ -235,7 +247,9 @@ export const SwipeableItem = <T,>({
 								setDeleting(!deleting);
 							}}
 						>
-							<Text style={{ color: "white" }}>削除</Text>
+							<Text style={{ color: "#F0F0F0" }}>
+								{n({ default: "Delete", jp: "削除" })}
+							</Text>
 						</Pressable>
 					</Animated.View>
 					<Animated.View
@@ -269,7 +283,7 @@ export const SwipeableItem = <T,>({
 						{
 							flexGrow: 1,
 							height: "100%",
-							width: "80%",
+							width: dndEnabled ? "80%" : "100%",
 						},
 						itemStyle,
 					]}
@@ -288,29 +302,33 @@ export const SwipeableItem = <T,>({
 				>
 					{children}
 				</Pressable>
-				<Pressable
-					style={{
-						width: "20%",
-						alignItems: "center",
-						justifyContent: "center",
-						position: "absolute",
-						right: 0,
-						height: "100%",
-						backgroundColor:
-							(itemStyle as ViewStyle)?.backgroundColor || "transparent",
-					}}
-					onPressIn={() => {
-						setIsLongPress(true);
-					}}
-					onPressOut={() => {
-						if (y.current === 0) {
-							setIsLongPress(false);
-						}
-					}}
-				>
-					<Ionicons name="reorder-three-outline" size={40} color="white" />
-				</Pressable>
-				<View style={{ borderTopWidth: 1, marginTop: "auto" }} />
+				{dndEnabled && (
+					<Pressable
+						style={{
+							width: "20%",
+							alignItems: "center",
+							justifyContent: "center",
+							position: "absolute",
+							right: 0,
+							height: "100%",
+							backgroundColor:
+								(itemStyle as ViewStyle)?.backgroundColor || "transparent",
+						}}
+						onPressIn={() => {
+							setIsLongPress(true);
+						}}
+						onPressOut={() => {
+							if (y.current === 0) {
+								setIsLongPress(false);
+							}
+						}}
+					>
+						<Ionicons name="reorder-three-outline" size={40} color="#F0F0F0" />
+					</Pressable>
+				)}
+				<View style={{ marginTop: "auto" }}>
+					<ItemSeparatorComponent index={i} />
+				</View>
 			</Animated.View>
 		</GestureDetector>
 	);

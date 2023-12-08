@@ -19,19 +19,31 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useFonts } from "expo-font";
 import * as Font from "expo-font";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Animated, View, StyleSheet, Image } from "react-native";
+import { Animated, View, StyleSheet, Image, Alert } from "react-native";
 import { StatusBar, setStatusBarStyle } from "expo-status-bar";
 import { BlurView } from "expo-blur";
+import { Pressable } from "react-native";
+import { n } from "../utils/n";
+import Text from "@/components/CustomText";
+import { createNovel } from "@/functions/createNovel";
+import { createEpisode } from "@/functions/createEpisode";
+import {
+	NotoSansJP_400Regular,
+	NotoSansJP_700Bold,
+	NotoSansJP_500Medium,
+} from "@expo-google-fonts/noto-sans-jp";
+import { NotoSerifJP_400Regular } from "@expo-google-fonts/noto-serif-jp";
+import { GothicA1_400Regular } from "@expo-google-fonts/gothic-a1";
+import { Roboto_400Regular } from "@expo-google-fonts/roboto";
 SplashScreen.preventAutoHideAsync();
 
 function cacheFonts(fonts: any[]) {
 	return fonts.map((font) => Font.loadAsync(font));
 }
 export default function Layout() {
-	const { session, setEstate } = useEstate("main");
+	const { session, setEstate, title, description, loading } = useEstate("main");
 	const pathname = usePathname();
 	const params = useGlobalSearchParams();
-	// const { title } = useLocalSearchParams();
 
 	useEffect(() => {
 		// setStatusBarStyle("light");
@@ -40,7 +52,6 @@ export default function Layout() {
 		});
 
 		const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-			console.log("^_^ Log \n file: _layout.tsx:15 \n session:", !!session);
 			setEstate({ session });
 		});
 		return () => {
@@ -55,7 +66,7 @@ export default function Layout() {
 	useEffect(() => {
 		(async () => {
 			const url = JSON.parse((await AsyncStorage.getItem("url")) || "null");
-			// if (url) router.push(url);
+			if (url) router.push(url);
 		})();
 	}, []);
 	useEffect(() => {
@@ -71,14 +82,8 @@ export default function Layout() {
 							contentStyle: { backgroundColor: "#000015" },
 							// headerShown: false,
 							headerTransparent: true,
-							headerBackground: () => (
-								<BlurView
-									tint="dark"
-									intensity={50}
-									style={StyleSheet.absoluteFill}
-								/>
-							),
-							headerTitleStyle: { color: "white" },
+
+							headerTitleStyle: { color: "#F0F0F0" },
 						}}
 					>
 						<Stack.Screen
@@ -94,22 +99,112 @@ export default function Layout() {
 										resizeMode="contain"
 									/>
 								),
+								headerRight: () => (
+									<Pressable
+										onPress={() => {
+											router.push("/add");
+										}}
+									>
+										<Ionicons name="add" size={30} color="#F0F0F0" />
+									</Pressable>
+								),
+								headerBackground: () => (
+									<BlurView
+										tint="dark"
+										intensity={50}
+										style={StyleSheet.absoluteFill}
+									/>
+								),
 							}}
 						/>
 						<Stack.Screen
-							name="(drawer)"
-							options={
-								{
-									// title: String(params.title || ""),
-									// headerShown: false,
-								}
-							}
+							name="[novel_id]"
+							options={{
+								title: String(params.title || ""),
+								headerBackground: () => (
+									<BlurView
+										tint="dark"
+										intensity={50}
+										style={StyleSheet.absoluteFill}
+									/>
+								),
+								// headerShown: false,
+							}}
 						/>
 						<Stack.Screen
 							name="auth"
 							options={{
 								// Set the presentation mode to modal for our modal route.
 								presentation: "modal",
+							}}
+						/>
+						<Stack.Screen
+							name="episode"
+							options={{
+								// Set the presentation mode to modal for our modal route.
+								presentation: "fullScreenModal",
+								headerTransparent: false,
+								headerStyle: { backgroundColor: "#000030" },
+								headerTitle: "aaaaaaa",
+							}}
+						/>
+						<Stack.Screen
+							name="add"
+							options={{
+								// Set the presentation mode to modal for our modal route.
+								presentation: "modal",
+								headerTitle: n({ default: "Add a Novel", jp: "作品を追加" }),
+								// headerBackground: () => (
+								// 	<View
+								// 		style={[
+								// 			StyleSheet.absoluteFill,
+								// 			{ borderBottomWidth: 1, borderColor: "#000030" },
+								// 		]}
+								// 	/>
+								// ),
+								headerStyle: { backgroundColor: "#000030" },
+								headerTitleStyle: { color: "#F0F0F0" },
+								headerRight: () => (
+									<Pressable
+										onPress={() => {
+											if (loading) return;
+											if (title) {
+												router.back();
+												createNovel({
+													title,
+													description,
+													onLoading: (bool) => {
+														setEstate({ loading: bool });
+													},
+												}).then(() => {
+													setEstate({ title: "", description: "" });
+												});
+											} else {
+												Alert.alert(
+													n({
+														default: "Title is not entered",
+														jp: "作品名を入力してください",
+													})
+												);
+											}
+										}}
+									>
+										<Text style={{ fontWeight: "bold", fontSize: 16 }}>
+											{!loading && n({ default: "Add", jp: "追加" })}
+										</Text>
+									</Pressable>
+								),
+								headerLeft: () => (
+									<Pressable
+										onPress={() => {
+											router.back();
+										}}
+									>
+										<Text style={{ fontWeight: "bold", fontSize: 16 }}>
+											{n({ default: "Cancel", jp: "キャンセル" })}
+										</Text>
+									</Pressable>
+								),
 							}}
 						/>
 					</Stack>
@@ -121,7 +216,14 @@ export default function Layout() {
 const FadeoutSplash = ({ children }: { children: ReactNode }) => {
 	const [isSplashReady, setSplashReady] = useState(false);
 	const [assets, error] = useAssets([require("assets/splash.png")]);
-
+	const [fontsLoaded, fontError] = useFonts({
+		NotoSansJP_400Regular,
+		NotoSerifJP_400Regular,
+		GothicA1_400Regular,
+		Roboto_400Regular,
+		NotoSansJP_700Bold,
+		NotoSansJP_500Medium,
+	});
 	useEffect(() => {
 		async function prepare() {
 			if (assets) await assets[0].downloadAsync();
@@ -131,7 +233,7 @@ const FadeoutSplash = ({ children }: { children: ReactNode }) => {
 		prepare();
 	}, [assets]);
 
-	if (!isSplashReady) {
+	if (!isSplashReady || !fontsLoaded) {
 		return null;
 	}
 
