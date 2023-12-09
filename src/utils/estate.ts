@@ -1,12 +1,8 @@
-import { Database } from "@/utils/database.types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Session } from "@supabase/supabase-js";
 import { Paragraph } from "@/utils/types";
 import { createEstate } from "@e-state/react";
-type Tables = Database["public"]["Tables"];
-type Novel = Tables["novels"]["Row"] & { synced_at: null | string };
-type Episode = Tables["episodes"]["Row"];
-type Groupe = Tables["episode_groups"]["Row"];
+import { Novel, Episode, Groupe, Plot, PlotGroups, Tables } from "./types";
 export const { useEstate, clearEstate, setEstates } = createEstate(
 	{
 		main: {
@@ -25,9 +21,13 @@ export const { useEstate, clearEstate, setEstates } = createEstate(
 			novels: {} as Record<string, Novel>,
 			episodes: {} as Record<string, Episode>,
 			episodeGroups: {} as Record<string, Groupe>,
+			selectedGroupe: {} as Record<string, string | null>,
+
+			plots: {} as Record<string, Plot>,
+			plotGroups: {} as Record<string, PlotGroups>,
+			selectedPlotGroupe: {} as Record<string, string | null>,
 			archive: {} as Record<string, Record<string, Tables["episodes"]["Row"]>>,
 			signinRecommendation: false,
-			selectedGroupe: {} as Record<string, string | null>,
 			timestamp: Date.now(),
 		},
 	},
@@ -90,6 +90,20 @@ export const setGroupe = (
 			if (typeof value === "function") {
 				cv[String(groupe_id)] = value(cv[String(groupe_id)]);
 			} else cv[String(groupe_id)] = value;
+			return Object.assign({}, cv);
+		},
+	});
+};
+export const setPlot = (
+	plot_id: string | string[] | undefined,
+	value: Plot | ((currentValue: Plot) => Plot)
+) => {
+	if (!plot_id) return;
+	setEstates.persist({
+		plots: (cv) => {
+			if (typeof value === "function") {
+				cv[String(plot_id)] = value(cv[String(plot_id)]);
+			} else cv[String(plot_id)] = value;
 			return Object.assign({}, cv);
 		},
 	});

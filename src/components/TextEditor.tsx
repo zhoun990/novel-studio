@@ -191,6 +191,7 @@ export const TextEditor = ({ toolbar = [] }: { toolbar?: ReactNode[] }) => {
 					[
 						{ value: "　", title: "__" },
 						{ value: "――", title: "――" },
+						{ value: "……", title: "……" },
 						{ value: "「", title: "「" },
 						{ value: "」", title: "」" },
 						{ value: "|漢字《かんじ》", title: "ルビ" },

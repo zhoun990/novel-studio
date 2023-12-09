@@ -4,15 +4,13 @@ import { supabase } from "@/utils/supabase";
 import { setEstates } from "@/utils/estate";
 import { n } from "@/utils/n";
 
-export function createEpisode({
+export function createPlotGroupe({
 	novel_id,
 	title,
 	onLoading = () => {},
-	tags = [],
 }: {
 	novel_id: string;
 	title: string;
-	tags?: string[];
 	onLoading?: (isLoading: boolean) => void;
 }) {
 	try {
@@ -27,23 +25,19 @@ export function createEpisode({
 		if (typeof novel_id !== "string")
 			throw new Error("IDが文字列ではありません！");
 		setEstates.persist({
-			episodes: async (
-				episodes,
-				{ novels, episodeGroups, selectedGroupe },
+			plotGroups: async (
+				plotGroups,
+				{ novels, selectedPlotGroupe },
 				{ main }
 			) => {
 				try {
 					if (!novels[novel_id]) throw new Error("id invalid");
-					// if (!groupe || !episodeGroups[groupe]) groupe = null;
-					const groupe = selectedGroupe[novel_id] || null;
-					if (main.session?.user.id === novels[String(novel_id)]?.user_id) {
+					if (main.session?.user.id === novels[novel_id]?.user_id) {
 						const { error, data } = await supabase
-							.from("episodes")
+							.from("plot_groups")
 							.insert({
 								title,
 								novel_id,
-								tags,
-								groupe,
 							})
 							.select("*")
 							.single();
@@ -54,14 +48,14 @@ export function createEpisode({
 						await supabase
 							.from("novels")
 							.update({
-								episodes_list: [...novels[novel_id]?.episodes_list, data.id],
+								plot_groups: [...novels[novel_id].plot_groups, data.id],
 							})
 							.eq("id", novel_id)
-							.select("episodes_list")
+							.select("plot_groups")
 							.single()
 							.then(({ data, error }) => {
-								if (!error && data.episodes_list && novels[novel_id]) {
-									novels[novel_id].episodes_list = data.episodes_list;
+								if (!error && data.plot_groups && novels[novel_id]) {
+									novels[novel_id].plot_groups = data.plot_groups;
 								} else {
 									console.error(
 										"^_^ Log \n file: index.tsx:63 \n error:",
@@ -70,65 +64,44 @@ export function createEpisode({
 									throw error;
 								}
 							});
-						if (groupe) {
-							await supabase
-								.from('episode_groups')
-								.update({
-									episodes_list: [...episodeGroups[groupe]?.episodes_list, data.id],
-								})
-								.eq("id", groupe)
-								.select("episodes_list")
-								.single()
-								.then(({ data, error }) => {
-									if (!error && data.episodes_list &&episodeGroups[groupe]) {
-										episodeGroups[groupe].episodes_list = data.episodes_list;
-									} else {
-										console.error(
-											"^_^ Log \n file: index.tsx:63 \n error:",
-											error
-										);
-										throw error;
-									}
-								});
-						}
+						plotGroups[data.id] = data;
+						selectedPlotGroupe[novel_id] = data.id;
 
-						episodes[data.id] = data;
-
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: data.id },
-						});
+						// setEstates.persist({
+						// 	selectedGroupe: (cv) => {
+						// 		cv[novel_id] = data.id;
+						// 		return cv;
+						// 	},
+						// });
 					} else {
 						const id = require("uuid").v4();
-
-						episodes[id] = {
+						plotGroups[id] = {
 							title,
 							novel_id,
-							tags: [],
-							character_count: 0,
 							created_at: new Date().toISOString(),
 							id,
-							text: "",
+							plots: [],
 							updated_at: new Date().toISOString(),
-							groupe,
 							user_id: null,
 						};
 						novels[novel_id].updated_at = new Date().toISOString();
-						novels[novel_id].episodes_list.push(id);
-						if (groupe) episodeGroups[groupe].episodes_list.push(id);
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: id },
-						});
+						if (!novels[novel_id].plot_groups)
+							novels[novel_id].plot_groups = [id];
+						else novels[novel_id].plot_groups.push(id);
+						selectedPlotGroupe[novel_id] = id;
 					}
-					return [Object.assign({}, episodes), {}, { persist: { novels } }];
+					return [
+						Object.assign({}, plotGroups),
+						{},
+						{ persist: { novels, selectedPlotGroupe } },
+					];
 				} catch (error) {
 					if (error instanceof Error) {
 						Alert.alert(error.message);
 					} else {
 						console.log("err", error);
 					}
-					return episodes;
+					return plotGroups;
 				}
 			},
 		});

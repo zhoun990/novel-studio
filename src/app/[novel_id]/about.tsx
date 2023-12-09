@@ -1,9 +1,9 @@
 import Text from "@/components/CustomText";
 import TextInput from "@/components/CustomTextInput";
-import { createEpisode } from "@/functions/createEpisode";
 import { setNovel, useEstate } from "@/utils/estate";
 import { n } from "@/utils/n";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { supabase } from "@/utils/supabase";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useHeaderHeight } from "@react-navigation/elements";
 import {
 	router,
@@ -11,19 +11,14 @@ import {
 	useGlobalSearchParams,
 	useNavigation,
 } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
 	Alert,
-	Dimensions,
-	Pressable,
-	View,
 	KeyboardAvoidingView,
+	Pressable,
+	View
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
-
-const WindowWidth = Dimensions.get("window").width;
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { supabase } from "@/utils/supabase";
 
 export default function Page() {
 	const { session } = useEstate("main");

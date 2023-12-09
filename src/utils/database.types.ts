@@ -116,6 +116,7 @@ export interface Database {
           groups: string[]
           id: string
           note: string | null
+          plot_groups: string[]
           target_character_count: number | null
           title: string
           updated_at: string
@@ -128,6 +129,7 @@ export interface Database {
           groups?: string[]
           id?: string
           note?: string | null
+          plot_groups?: string[]
           target_character_count?: number | null
           title: string
           updated_at?: string
@@ -140,6 +142,7 @@ export interface Database {
           groups?: string[]
           id?: string
           note?: string | null
+          plot_groups?: string[]
           target_character_count?: number | null
           title?: string
           updated_at?: string
@@ -148,6 +151,103 @@ export interface Database {
         Relationships: [
           {
             foreignKeyName: "novels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      plot_groups: {
+        Row: {
+          created_at: string
+          id: string
+          novel_id: string
+          plots: string[]
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          novel_id: string
+          plots?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          novel_id?: string
+          plots?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plot_groups_novel_id_fkey"
+            columns: ["novel_id"]
+            isOneToOne: false
+            referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plot_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      plots: {
+        Row: {
+          created_at: string
+          id: string
+          novel_id: string
+          plot_groupe_id: string | null
+          text: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          novel_id: string
+          plot_groupe_id?: string | null
+          text?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          novel_id?: string
+          plot_groupe_id?: string | null
+          text?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plots_novel_id_fkey"
+            columns: ["novel_id"]
+            isOneToOne: false
+            referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plots_plot_groupe_id_fkey"
+            columns: ["plot_groupe_id"]
+            isOneToOne: false
+            referencedRelation: "plot_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plots_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

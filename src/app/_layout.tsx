@@ -66,7 +66,7 @@ export default function Layout() {
 	useEffect(() => {
 		(async () => {
 			const url = JSON.parse((await AsyncStorage.getItem("url")) || "null");
-			if (url) router.push(url);
+			// if (url) router.push(url);
 		})();
 	}, []);
 	useEffect(() => {

@@ -185,7 +185,16 @@ export default function Page() {
 			>
 				<FlatList
 					data={novel.groups}
-					initialScrollIndex={selected ? novel.groups?.indexOf(selected) : 0}
+					initialScrollIndex={
+						selected &&
+						novel.groups.reduce((acc, v, i) => {
+							acc += 40 + episodeGroups[novel.groups[i]].title.length * 20;
+
+							return acc;
+						}, 90) > WindowWidth
+							? novel.groups?.indexOf(selected)
+							: 0
+					}
 					showsHorizontalScrollIndicator={false}
 					getItemLayout={(data, index) => {
 						return {
@@ -209,7 +218,7 @@ export default function Page() {
 								actions={[
 									{ title: n({ default: "Rename", jp: "フォルダ名変更" }) },
 									{
-										title: n({ default: "Delete", jp: "フォルダ名変更" }),
+										title: n({ default: "Delete", jp: "フォルダー削除" }),
 										destructive: true,
 									},
 								]}

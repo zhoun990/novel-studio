@@ -62,6 +62,7 @@ export async function createNovel({
 						title,
 						synced_at: null,
 						groups: [],
+						plot_groups: [],
 					};
 				}
 				return cv;
