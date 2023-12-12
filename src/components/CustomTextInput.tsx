@@ -6,6 +6,7 @@ const TextInput: React.FC<TextInputProps> = (props) => {
 	return (
 		<NativeTextInput
 			style={[{ color: "#F0F0F0", fontFamily: "NotoSansJP_500Medium" }, style]}
+			keyboardAppearance="dark"
 			{...others}
 		>
 			{props.children}

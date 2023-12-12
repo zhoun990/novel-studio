@@ -28,7 +28,6 @@ export default function HomeLayout() {
 }
 const LeftDrawer = ({ navigation }: DrawerContentComponentProps) => {
 	const { novel_id, episode_id } = useLocalSearchParams();
-	console.log("^_^ Log \n file: _layout.tsx:30 \n episode_id:", episode_id);
 	const { episodes, novels, setEstate } = useEstate("persist");
 	return (
 		<SafeAreaView

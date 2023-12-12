@@ -9,32 +9,132 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
-      episode_groups: {
+      doc_groups: {
         Row: {
-          color: string | null
           created_at: string
-          episodes_list: string[]
           id: string
+          list: string[]
           novel_id: string
           title: string
+          updated_at: string
           user_id: string | null
         }
         Insert: {
-          color?: string | null
           created_at?: string
-          episodes_list: string[]
           id?: string
+          list?: string[]
           novel_id: string
           title?: string
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
-          color?: string | null
           created_at?: string
-          episodes_list?: string[]
           id?: string
+          list?: string[]
           novel_id?: string
           title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_groups_novel_id_fkey"
+            columns: ["novel_id"]
+            isOneToOne: false
+            referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_groups_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      docs: {
+        Row: {
+          created_at: string
+          doc_groupe_id: string | null
+          id: string
+          novel_id: string
+          text: string[]
+          title: string[]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc_groupe_id?: string | null
+          id?: string
+          novel_id: string
+          text?: string[]
+          title?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc_groupe_id?: string | null
+          id?: string
+          novel_id?: string
+          text?: string[]
+          title?: string[]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "docs_doc_groupe_id_fkey"
+            columns: ["doc_groupe_id"]
+            isOneToOne: false
+            referencedRelation: "doc_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "docs_novel_id_fkey"
+            columns: ["novel_id"]
+            isOneToOne: false
+            referencedRelation: "novels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "docs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      episode_groups: {
+        Row: {
+          created_at: string
+          id: string
+          list: string[]
+          novel_id: string
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list?: string[]
+          novel_id: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list?: string[]
+          novel_id?: string
+          title?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -58,6 +158,7 @@ export interface Database {
         Row: {
           character_count: number
           created_at: string
+          deleted: boolean
           groupe: string | null
           id: string
           novel_id: string
@@ -70,6 +171,7 @@ export interface Database {
         Insert: {
           character_count?: number
           created_at?: string
+          deleted?: boolean
           groupe?: string | null
           id?: string
           novel_id: string
@@ -82,6 +184,7 @@ export interface Database {
         Update: {
           character_count?: number
           created_at?: string
+          deleted?: boolean
           groupe?: string | null
           id?: string
           novel_id?: string
@@ -112,6 +215,7 @@ export interface Database {
         Row: {
           created_at: string
           description: string | null
+          doc_groups: string[]
           episodes_list: string[]
           groups: string[]
           id: string
@@ -125,6 +229,7 @@ export interface Database {
         Insert: {
           created_at?: string
           description?: string | null
+          doc_groups?: string[]
           episodes_list: string[]
           groups?: string[]
           id?: string
@@ -138,6 +243,7 @@ export interface Database {
         Update: {
           created_at?: string
           description?: string | null
+          doc_groups?: string[]
           episodes_list?: string[]
           groups?: string[]
           id?: string
@@ -162,8 +268,8 @@ export interface Database {
         Row: {
           created_at: string
           id: string
+          list: string[]
           novel_id: string
-          plots: string[]
           title: string
           updated_at: string
           user_id: string | null
@@ -171,8 +277,8 @@ export interface Database {
         Insert: {
           created_at?: string
           id?: string
+          list?: string[]
           novel_id: string
-          plots?: string[]
           title?: string
           updated_at?: string
           user_id?: string | null
@@ -180,8 +286,8 @@ export interface Database {
         Update: {
           created_at?: string
           id?: string
+          list?: string[]
           novel_id?: string
-          plots?: string[]
           title?: string
           updated_at?: string
           user_id?: string | null

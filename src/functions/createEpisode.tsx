@@ -1,10 +1,17 @@
 import { router } from "expo-router";
 import { Alert } from "react-native";
 import { supabase } from "@/utils/supabase";
-import { setEstates } from "@/utils/estate";
+import {
+	setEpisode,
+	setEstates,
+	setEpisodeGroups,
+	setNovel,
+	store,
+} from "@/utils/estate";
 import { n } from "@/utils/n";
+import { isRemoteNovel } from "../utils/isRemoteNovel";
 
-export function createEpisode({
+export async function createEpisode({
 	novel_id,
 	title,
 	onLoading = () => {},
@@ -26,117 +33,103 @@ export function createEpisode({
 			);
 		if (typeof novel_id !== "string")
 			throw new Error("IDが文字列ではありません！");
-		setEstates.persist({
-			episodes: async (
-				episodes,
-				{ novels, episodeGroups, selectedGroupe },
-				{ main }
-			) => {
-				try {
-					if (!novels[novel_id]) throw new Error("id invalid");
-					// if (!groupe || !episodeGroups[groupe]) groupe = null;
-					const groupe = selectedGroupe[novel_id] || null;
-					if (main.session?.user.id === novels[String(novel_id)]?.user_id) {
-						const { error, data } = await supabase
-							.from("episodes")
-							.insert({
-								title,
-								novel_id,
-								tags,
-								groupe,
-							})
-							.select("*")
-							.single();
+		const { novels, episodeGroups, selectedEpisodeGroupe } =
+			store.getSlice("persist");
+		if (!novels[novel_id]) throw new Error("id invalid");
+		const groupeId = selectedEpisodeGroupe[novel_id] || null;
 
-						if (error || !data) {
-							throw error;
-						}
-						await supabase
-							.from("novels")
-							.update({
-								episodes_list: [...novels[novel_id]?.episodes_list, data.id],
-							})
-							.eq("id", novel_id)
-							.select("episodes_list")
-							.single()
-							.then(({ data, error }) => {
-								if (!error && data.episodes_list && novels[novel_id]) {
-									novels[novel_id].episodes_list = data.episodes_list;
-								} else {
-									console.error(
-										"^_^ Log \n file: index.tsx:63 \n error:",
-										error
-									);
-									throw error;
-								}
-							});
-						if (groupe) {
-							await supabase
-								.from('episode_groups')
-								.update({
-									episodes_list: [...episodeGroups[groupe]?.episodes_list, data.id],
-								})
-								.eq("id", groupe)
-								.select("episodes_list")
-								.single()
-								.then(({ data, error }) => {
-									if (!error && data.episodes_list &&episodeGroups[groupe]) {
-										episodeGroups[groupe].episodes_list = data.episodes_list;
-									} else {
-										console.error(
-											"^_^ Log \n file: index.tsx:63 \n error:",
-											error
-										);
-										throw error;
-									}
-								});
-						}
+		const createdEpisode = isRemoteNovel(novel_id)
+			? await supabase
+					.from("episodes")
+					.insert({
+						title,
+						novel_id,
+						tags,
+						groupe: groupeId,
+					})
+					.select("*")
+					.single()
+					.then(({ data, error }) => {
+						if (error || !data) throw error;
+						return data;
+					})
+			: {
+					title,
+					novel_id,
+					tags: [],
+					character_count: 0,
+					created_at: new Date().toISOString(),
+					id: require("uuid").v4(),
+					text: "",
+					updated_at: new Date().toISOString(),
+					groupe: groupeId,
+					user_id: null,
+					deleted: false,
+			  };
 
-						episodes[data.id] = data;
-
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: data.id },
-						});
-					} else {
-						const id = require("uuid").v4();
-
-						episodes[id] = {
-							title,
-							novel_id,
-							tags: [],
-							character_count: 0,
-							created_at: new Date().toISOString(),
-							id,
-							text: "",
-							updated_at: new Date().toISOString(),
-							groupe,
-							user_id: null,
-						};
-						novels[novel_id].updated_at = new Date().toISOString();
-						novels[novel_id].episodes_list.push(id);
-						if (groupe) episodeGroups[groupe].episodes_list.push(id);
-						router.push({
-							pathname: "/episode/[episode_id]",
-							params: { novel_id, episode_id: id },
-						});
-					}
-					return [Object.assign({}, episodes), {}, { persist: { novels } }];
-				} catch (error) {
-					if (error instanceof Error) {
-						Alert.alert(error.message);
-					} else {
-						console.log("err", error);
-					}
-					return episodes;
-				}
-			},
+		setEpisode(createdEpisode.id, createdEpisode);
+		const updatedNovel = isRemoteNovel(novel_id)
+			? await supabase
+					.from("novels")
+					.update({
+						episodes_list: [
+							...novels[novel_id]?.episodes_list,
+							createdEpisode.id,
+						],
+					})
+					.eq("id", novel_id)
+					.select("episodes_list")
+					.single()
+					.then(({ data, error }) => {
+						if (error || !data?.episodes_list) throw error;
+						return data;
+					})
+			: {
+					episodes_list: novels[novel_id].episodes_list.concat(
+						createdEpisode.id
+					),
+			  };
+		setNovel(novel_id, (cv) => {
+			cv.episodes_list = updatedNovel.episodes_list;
+			cv.updated_at = new Date().toISOString();
+			return cv;
+		});
+		if (groupeId) {
+			const updatedEpisodeGroupe = isRemoteNovel(novel_id)
+				? await supabase
+						.from("episode_groups")
+						.update({
+							episodes_list: [
+								...episodeGroups[groupeId]?.episodes_list,
+								createdEpisode.id,
+							],
+						})
+						.eq("id", groupeId)
+						.select("episodes_list")
+						.single()
+						.then(({ data, error }) => {
+							if (error || !data?.episodes_list) throw error;
+							return data;
+						})
+				: {
+						episodes_list: episodeGroups[groupeId].episodes_list.concat(
+							createdEpisode.id
+						),
+				  };
+			setEpisodeGroups(groupeId, (cv) => {
+				cv.episodes_list = updatedEpisodeGroupe.episodes_list;
+				return cv;
+			});
+		}
+		router.push({
+			pathname: "/episode/[episode_id]",
+			params: { novel_id, episode_id: createdEpisode.id },
 		});
 	} catch (error) {
+		console.log("err", error);
+
 		if (error instanceof Error) {
 			Alert.alert(error.message);
-		} else {
-			console.log("err", error);
 		}
 	} finally {
 		onLoading(false);

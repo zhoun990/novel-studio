@@ -12,18 +12,18 @@ import {
 	useNavigation,
 } from "expo-router";
 import { useCallback, useState } from "react";
-import {
-	Alert,
-	KeyboardAvoidingView,
-	Pressable,
-	View
-} from "react-native";
+import { Alert, KeyboardAvoidingView, Pressable, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
 export default function Page() {
 	const { session } = useEstate("main");
-	const { episodes, novels, setEstate, episodeGroups, selectedGroupe } =
-		useEstate("persist");
+	const {
+		episodes,
+		novels,
+		setEstate,
+		episodeGroups,
+		selectedEpisodeGroupe: selectedGroupe,
+	} = useEstate("persist");
 	const { novel_id } = useGlobalSearchParams();
 	const novel = novels[String(novel_id)];
 	const [loading, setLoading] = useState(false);

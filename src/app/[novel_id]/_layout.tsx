@@ -1,7 +1,6 @@
 import { BlurView } from "expo-blur";
-import { Stack, Tabs, router } from "expo-router";
-import { View, Image, Pressable, StyleSheet } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Tabs } from "expo-router";
+import { Image, StyleSheet } from "react-native";
 
 export default function HomeLayout() {
 	return (
@@ -63,7 +62,9 @@ export default function HomeLayout() {
 			/>
 			<Tabs.Screen
 				name="docs"
-
+				options={{
+					headerShown: false,
+				}}
 			/>
 		</Tabs>
 	);

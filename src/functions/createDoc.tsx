@@ -2,16 +2,16 @@ import { router } from "expo-router";
 import { Alert } from "react-native";
 import { supabase } from "@/utils/supabase";
 import {
+	setDocs,
+	setDocGroups,
 	setEstates,
-	setNovel,
-	setPlot,
-	setPlotGroups,
 	store,
+	setNovel,
 } from "@/utils/estate";
 import { n } from "@/utils/n";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 
-export async function createPlot({
+export async function createDoc({
 	novel_id,
 	onLoading = () => {},
 }: {
@@ -20,27 +20,27 @@ export async function createPlot({
 }) {
 	try {
 		onLoading(true);
-
 		if (typeof novel_id !== "string")
 			throw new Error("IDが文字列ではありません！");
-		const { novels, selectedPlotGroupe, plotGroups } =
-			store.getSlice("persist");
+		const { novels, selectedDocGroupe, docGroups } = store.getSlice("persist");
 		if (!novels[novel_id]) throw new Error("id invalid");
-		const plot_groupe_id = selectedPlotGroupe[novel_id];
-		if (!plot_groupe_id)
+		const doc_groupe_id = selectedDocGroupe[novel_id];
+		if (!doc_groupe_id)
 			throw new Error(
 				n({
 					default:
-						"No plot group is selected. Please create it before creating a plot.",
-					jp: "プロットグループが選択されていません。プロットを作成する前に、プロットグループを作成してください。",
+						"No document group is selected. Please create it before creating a document.",
+					jp: "資料分類が選択されていません。資料を作成する前に、資料分類を作成してください。",
 				})
 			);
 		const data = isRemoteNovel(novel_id)
 			? await supabase
-					.from("plots")
+					.from("docs")
 					.insert({
 						novel_id,
-						plot_groupe_id,
+						doc_groupe_id,
+						title: [""],
+						text: [""],
 					})
 					.select("*")
 					.single()
@@ -52,28 +52,29 @@ export async function createPlot({
 					novel_id,
 					created_at: new Date().toISOString(),
 					id: require("uuid").v4(),
-					text: "",
+					title: [""],
+					text: [""],
 					updated_at: new Date().toISOString(),
 					user_id: null,
-					plot_groupe_id,
+					doc_groupe_id,
 			  };
-		setPlot(data.id, data);
-		const updatedPlotGroupe = isRemoteNovel(novel_id)
+		setDocs(data.id, data);
+		const updatedDocGroupe = isRemoteNovel(novel_id)
 			? await supabase
-					.from("plot_groups")
+					.from("doc_groups")
 					.update({
-						plots: [...plotGroups[plot_groupe_id]?.plots, data.id],
+						docs: [...docGroups[doc_groupe_id]?.docs, data.id],
 					})
-					.eq("id", plot_groupe_id)
-					.select("plots")
+					.eq("id", doc_groupe_id)
+					.select("docs")
 					.single()
 					.then(({ data, error }) => {
-						if (error || !data?.plots) throw error;
+						if (error || !data?.docs) throw error;
 						return data;
 					})
-			: { plots: plotGroups[plot_groupe_id].plots.concat(data.id) };
-		setPlotGroups(plot_groupe_id, (cv) => {
-			cv.plots = updatedPlotGroupe.plots;
+			: { docs: docGroups[doc_groupe_id].docs.concat(data.id) };
+		setDocGroups(doc_groupe_id, (cv) => {
+			cv.docs = updatedDocGroupe.docs;
 			return cv;
 		});
 		setNovel(novel_id, (cv) => {

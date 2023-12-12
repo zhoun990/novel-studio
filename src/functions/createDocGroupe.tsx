@@ -1,24 +1,21 @@
+import { router } from "expo-router";
+import { Alert } from "react-native";
+import { supabase } from "@/utils/supabase";
 import {
-  setGroupeRecord,
+  setDocGroups,
+  setEstates,
   setNovel,
   setSelectedGroupe,
-  store
+  store,
 } from "@/utils/estate";
-import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
-import { supabase } from "@/utils/supabase";
-import { Groupe, Novel } from "@/utils/types";
-import { Alert } from "react-native";
+import { isRemoteNovel } from "@/utils/isRemoteNovel";
 
-export async function createGroupe<T extends "plot_groups" | "doc_groups" | "groups">({
-  groupe_name,
-
+export async function createDocGroupe({
   novel_id,
   title,
   onLoading = () => {},
 }: {
-  groupe_name: T;
-
   novel_id: string;
   title: string;
   onLoading?: (isLoading: boolean) => void;
@@ -35,9 +32,9 @@ export async function createGroupe<T extends "plot_groups" | "doc_groups" | "gro
     if (typeof novel_id !== "string") throw new Error("IDが文字列ではありません！");
     const { novels } = store.getSlice("persist");
     if (!novels[novel_id]) throw new Error("id invalid");
-    const data: Groupe = isRemoteNovel(novel_id)
+    const data = isRemoteNovel(novel_id)
       ? await supabase
-          .from(groupe_name)
+          .from("doc_groups")
           .insert({
             title,
             novel_id,
@@ -53,28 +50,28 @@ export async function createGroupe<T extends "plot_groups" | "doc_groups" | "gro
           novel_id,
           created_at: new Date().toISOString(),
           id: require("uuid").v4(),
-          list: [],
+          docs: [],
           updated_at: new Date().toISOString(),
           user_id: null,
         };
-    setGroupeRecord(data.id, data);
-    setSelectedGroupe(novel_id, groupe_name, data.id);
-    const updatedNovel: { [k in typeof groupe_name]: Novel[k] } = isRemoteNovel(novel_id)
+    setDocGroups(data.id, data);
+    setSelectedGroupe(novel_id, data.id);
+    const updatedNovel = isRemoteNovel(novel_id)
       ? await supabase
           .from("novels")
           .update({
-            [groupe_name]: [...novels[novel_id][groupe_name], data.id],
+            doc_groups: [...novels[novel_id].doc_groups, data.id],
           })
           .eq("id", novel_id)
-          .select(groupe_name)
+          .select("doc_groups")
           .single()
-          .then(({ data, error }: any) => {
-            if (error || !data[groupe_name]) throw error;
+          .then(({ data, error }) => {
+            if (error || !data?.doc_groups) throw error;
             return data;
           })
-      : { [groupe_name]: novels[novel_id][groupe_name].concat(data.id) };
+      : { doc_groups: novels[novel_id].doc_groups.concat(data.id) };
     setNovel(novel_id, (cv) => {
-      cv[groupe_name] = updatedNovel[groupe_name];
+      cv.doc_groups = updatedNovel.doc_groups;
       cv.updated_at = new Date().toISOString();
       return cv;
     });

@@ -2,22 +2,24 @@ import { router } from "expo-router";
 import { Alert } from "react-native";
 import { supabase } from "@/utils/supabase";
 import {
+	setEpisodeGroups,
 	setEstates,
 	setNovel,
-	setPlotGroups,
-	setSelectedPlotGroups,
+	setSelectedEpisodeGroups,
 	store,
 } from "@/utils/estate";
 import { n } from "@/utils/n";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 
-export async function createPlotGroupe({
+export async function createEpisodeGroupe({
 	novel_id,
 	title,
+	color,
 	onLoading = () => {},
 }: {
 	novel_id: string;
 	title: string;
+	color?: string;
 	onLoading?: (isLoading: boolean) => void;
 }) {
 	try {
@@ -37,10 +39,11 @@ export async function createPlotGroupe({
 
 		const data = isRemoteNovel(novel_id)
 			? await supabase
-					.from("plot_groups")
+					.from("episode_groups")
 					.insert({
 						title,
 						novel_id,
+						episodes_list: [],
 					})
 					.select("*")
 					.single()
@@ -53,31 +56,32 @@ export async function createPlotGroupe({
 					novel_id,
 					created_at: new Date().toISOString(),
 					id: require("uuid").v4(),
-					plots: [],
-					updated_at: new Date().toISOString(),
+					color: null,
+					episodes_list: [],
+					// updated_at: new Date().toISOString(),
 					user_id: null,
 			  };
-		setPlotGroups(data.id, data);
-		setSelectedPlotGroups(novel_id, data.id);
-		const updatedPlotGroupe = isRemoteNovel(novel_id)
+		setEpisodeGroups(data.id, data);
+		const updatedNovels = isRemoteNovel(novel_id)
 			? await supabase
 					.from("novels")
 					.update({
-						plot_groups: [...novels[novel_id].plot_groups, data.id],
+						groups: [...novels[novel_id]?.groups, data.id],
 					})
 					.eq("id", novel_id)
-					.select("plot_groups")
+					.select("groups")
 					.single()
 					.then(({ data, error }) => {
-						if (error || !data?.plot_groups) throw error;
+						if (error || !data?.groups) throw error;
 						return data;
 					})
-			: { plot_groups: novels[novel_id].plot_groups.concat(data.id) };
+			: { groups: novels[novel_id].groups.concat(data.id) };
 		setNovel(novel_id, (cv) => {
-			cv.plot_groups = updatedPlotGroupe.plot_groups;
+			cv.groups = updatedNovels.groups;
 			cv.updated_at = new Date().toISOString();
 			return cv;
 		});
+		setSelectedEpisodeGroups(novel_id, data.id);
 	} catch (error) {
 		if (error instanceof Error) {
 			Alert.alert(error.message);

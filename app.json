@@ -18,7 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "net.webbel.nvs",
       "usesAppleSignIn": true,
-      "buildNumber": "0.1.7"
+      "buildNumber": "0.1.9"
     },
     "android": {
       "adaptiveIcon": {
