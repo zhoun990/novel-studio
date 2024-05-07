@@ -21,3 +21,4 @@ export type Groupe = {
   updated_at: string | null;
   user_id: string | null;
 };
+export type GroupeNames = "plot_groups" | "doc_groups" | "groups";

@@ -4,6 +4,7 @@ import {
   Docs,
   DocsGroupe,
   Groupe,
+  GroupeNames,
   Paragraph,
   SelectedGroups,
   Templates,
@@ -63,6 +64,7 @@ export const { useEstate, clearEstate, setEstates, store } = createEstate(
     // 		},
     // 	},
     // },
+    // debag: true,
   }
 );
 export const setNovel = (
@@ -75,10 +77,6 @@ export const setNovel = (
       novels: (cv) => {
         if (typeof value === "function") {
           cv[String(novel_id)] = value(cv[String(novel_id)]);
-          console.log(
-            "^_^ Log \n file: estate.ts:59 \n cv[String(novel_id)]:",
-            cv[String(novel_id)]
-          );
         } else cv[String(novel_id)] = value;
         return cv;
       },
@@ -103,6 +101,40 @@ export const setEpisode = (
     true
   );
 };
+// export const setRecordValue = <
+//   Persist extends (typeof store.store)["persist"],
+//   T extends keyof (typeof store.store)["persist"],
+//   Key extends keyof Persist[T],
+//   Value extends Persist[T][Key],
+//   Prop extends keyof Value
+// >(
+//   target: T,
+//   key: Key,
+//   prop_name_or_value: Prop | Value | ((currentValue: Value) => Value),
+//   value: Value[Prop] | ((currentValue: Value[Prop]) => Value[Prop])
+// ) => {
+//   if (!key) return;
+//   const groupeRecord = store.getValue("persist", target);
+
+//   const isT = (value: any): value is T =>
+//     !!groupeRecord && Object.keys(groupeRecord!.[id]).some((key) => key === value);
+
+//   setEstates.persist(
+//     {
+//       [target]: (cv: Persist[T]) => {
+//         if (typeof prop_name_or_value === "function") {
+//           cv[key] = prop_name_or_value(cv[key]);
+//         } else if (isT(prop_name_or_value)) {
+//           if (typeof value === "function")
+//             cv[key][prop_name_or_value] = value(cv[key][prop_name_or_value]);
+//           else if (value) cv[key][prop_name_or_value] = value;
+//         }
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };
 export const setGroupeRecord = <T extends keyof EpisodeGroups>(
   groupe_id: string | string[] | undefined,
   prop_name_or_value:
@@ -112,19 +144,96 @@ export const setGroupeRecord = <T extends keyof EpisodeGroups>(
   value?: EpisodeGroups[T] | ((currentValue: EpisodeGroups[T]) => EpisodeGroups[T])
 ) => {
   if (!groupe_id) return;
-  const groupeRecord = store.getValue("persist", "groupeRecord");
-  const id = String(groupe_id);
-  const isT = (value: any): value is T =>
-    Object.keys(groupeRecord[id]).some((key) => key === value);
+  try {
+    setEstates.persist({
+      groupeRecord: (cv) => {
+        const v = { ...cv };
+        const id = String(groupe_id);
+        const isT = (value: any): value is T =>
+          !!v[id] && Object.keys(v[id]).some((key) => key === value);
+
+        if (typeof prop_name_or_value === "function") {
+          v[id] = prop_name_or_value(v[id]);
+        } else if (typeof prop_name_or_value !== "object" && isT(prop_name_or_value)) {
+          if (typeof value === "function")
+            v[id][prop_name_or_value] = value(v[id][prop_name_or_value]);
+          else if (value) v[id][prop_name_or_value] = value;
+        } else {
+          v[id] = prop_name_or_value as EpisodeGroups;
+        }
+
+        return v;
+      },
+    });
+  } catch (error) {
+    console.error("^_^ ::: file: estate.ts:168 ::: error:\n", error);
+  }
+};
+// export const setEpisodeGroups = (
+//   groupe_id: string | string[] | undefined,
+//   value: EpisodeGroups | ((currentValue: EpisodeGroups) => EpisodeGroups)
+// ) => {
+//   if (!groupe_id) return;
+//   setEstates.persist(
+//     {
+//       episodeGroups: (cv) => {
+//         if (typeof value === "function") {
+//           cv[String(groupe_id)] = value(cv[String(groupe_id)]);
+//         } else cv[String(groupe_id)] = value;
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };
+// export const setSelectedEpisodeGroups = (
+//   id: string | string[] | undefined,
+//   value: string | null | ((currentValue: string | null) => string | null)
+// ) => {
+//   if (!id) return;
+//   setEstates.persist(
+//     {
+//       selectedEpisodeGroupe: (cv) => {
+//         if (typeof value === "function") {
+//           cv[String(id)] = value(cv[String(id)]);
+//         } else cv[String(id)] = value;
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };
+// export const setSelectedPlotGroups = (
+//   id: string | string[] | undefined,
+//   value: string | null | ((currentValue: string | null) => string | null)
+// ) => {
+//   if (!id) return;
+//   setEstates.persist(
+//     {
+//       selectedPlotGroupe: (cv) => {
+//         if (typeof value === "function") {
+//           cv[String(id)] = value(cv[String(id)]);
+//         } else cv[String(id)] = value;
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };
+export const setSelectedGroupe = (
+  novel_id: string | string[] | undefined,
+  groupe_name: GroupeNames,
+  value: string | null | ((currentValue: string | null) => string | null)
+) => {
+  if (!novel_id || !groupe_name) return;
+  const id = String(novel_id) + String(groupe_name);
   setEstates.persist(
     {
-      groupeRecord: (cv) => {
-        if (typeof prop_name_or_value === "function") {
-          cv[id] = prop_name_or_value(cv[id]);
-        } else if (isT(prop_name_or_value)) {
-          if (typeof value === "function")
-            cv[id][prop_name_or_value] = value(cv[id][prop_name_or_value]);
-          else if (value) cv[id][prop_name_or_value] = value;
+      selectedGroupeRecord: (cv) => {
+        if (typeof value === "function") {
+          cv[id] = value(cv[id]);
+        } else {
+          cv[id] = value;
         }
         return cv;
       },
@@ -132,93 +241,23 @@ export const setGroupeRecord = <T extends keyof EpisodeGroups>(
     true
   );
 };
-export const setEpisodeGroups = (
-  groupe_id: string | string[] | undefined,
-  value: EpisodeGroups | ((currentValue: EpisodeGroups) => EpisodeGroups)
-) => {
-  if (!groupe_id) return;
-  setEstates.persist(
-    {
-      episodeGroups: (cv) => {
-        if (typeof value === "function") {
-          cv[String(groupe_id)] = value(cv[String(groupe_id)]);
-        } else cv[String(groupe_id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
-export const setSelectedEpisodeGroups = (
-  id: string | string[] | undefined,
-  value: string | null | ((currentValue: string | null) => string | null)
-) => {
-  if (!id) return;
-  setEstates.persist(
-    {
-      selectedEpisodeGroupe: (cv) => {
-        if (typeof value === "function") {
-          cv[String(id)] = value(cv[String(id)]);
-        } else cv[String(id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
-export const setSelectedPlotGroups = (
-  id: string | string[] | undefined,
-  value: string | null | ((currentValue: string | null) => string | null)
-) => {
-  if (!id) return;
-  setEstates.persist(
-    {
-      selectedPlotGroupe: (cv) => {
-        if (typeof value === "function") {
-          cv[String(id)] = value(cv[String(id)]);
-        } else cv[String(id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
-export const setSelectedGroupe = (
-  id: string | string[] | undefined,
-  groupe_name: string | string[] | undefined,
-  value: string | null | ((currentValue: string | null) => string | null)
-) => {
-  if (!id || !groupe_name) return;
-  setEstates.persist(
-    {
-      selectedGroupeRecord: (cv) => {
-        if (typeof value === "function") {
-          cv[String(id) + String(groupe_name)] = value(cv[String(id)]);
-        } else cv[String(id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
 export const useSelectedGroupe = (
-  id: string | string[] | undefined,
-  groupe_name: string | string[] | undefined
+  novel_id: string | string[] | undefined,
+  groupe_name: GroupeNames
 ) => {
   const { selectedGroupeRecord } = useEstate("persist");
-  if (!id || !groupe_name) return null;
-  return selectedGroupeRecord[String(id) + String(groupe_name)] || null;
+  if (!novel_id || !groupe_name) return null;
+  const id = String(novel_id) + String(groupe_name);
+
+  return selectedGroupeRecord[id] || null;
 };
 export const getSelectedGroupe = (
-  id: string | string[] | undefined,
-  groupe_name: string | string[] | undefined
+  novel_id: string | string[] | undefined,
+  groupe_name: GroupeNames
 ) => {
-  if (!id || !groupe_name) return null;
-  return (
-    store.getValue("persist", "selectedGroupeRecord")?.[
-      String(id) + String(groupe_name)
-    ] || null
-  );
+  if (!novel_id || !groupe_name) return null;
+  const id = String(novel_id) + String(groupe_name);
+  return store.getValue("persist", "selectedGroupeRecord")?.[id] || null;
 };
 export const setPlot = (
   plot_id: string | string[] | undefined,
@@ -238,23 +277,23 @@ export const setPlot = (
     true
   );
 };
-export const setPlotGroups = (
-  id: string | string[] | undefined,
-  value: PlotGroups | ((currentValue: PlotGroups) => PlotGroups)
-) => {
-  if (!id) return;
-  setEstates.persist(
-    {
-      plotGroups: (cv) => {
-        if (typeof value === "function") {
-          cv[String(id)] = value(cv[String(id)]);
-        } else cv[String(id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
+// export const setPlotGroups = (
+//   id: string | string[] | undefined,
+//   value: PlotGroups | ((currentValue: PlotGroups) => PlotGroups)
+// ) => {
+//   if (!id) return;
+//   setEstates.persist(
+//     {
+//       plotGroups: (cv) => {
+//         if (typeof value === "function") {
+//           cv[String(id)] = value(cv[String(id)]);
+//         } else cv[String(id)] = value;
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };
 export const setDocs = (
   id: string | string[] | undefined,
   value: Docs | ((currentValue: Docs) => Docs)
@@ -272,20 +311,20 @@ export const setDocs = (
     true
   );
 };
-export const setDocGroups = (
-  id: string | string[] | undefined,
-  value: DocsGroupe | ((currentValue: DocsGroupe) => DocsGroupe)
-) => {
-  if (!id) return;
-  setEstates.persist(
-    {
-      docGroups: (cv) => {
-        if (typeof value === "function") {
-          cv[String(id)] = value(cv[String(id)]);
-        } else cv[String(id)] = value;
-        return cv;
-      },
-    },
-    true
-  );
-};
+// export const setDocGroups = (
+//   id: string | string[] | undefined,
+//   value: DocsGroupe | ((currentValue: DocsGroupe) => DocsGroupe)
+// ) => {
+//   if (!id) return;
+//   setEstates.persist(
+//     {
+//       docGroups: (cv) => {
+//         if (typeof value === "function") {
+//           cv[String(id)] = value(cv[String(id)]);
+//         } else cv[String(id)] = value;
+//         return cv;
+//       },
+//     },
+//     true
+//   );
+// };

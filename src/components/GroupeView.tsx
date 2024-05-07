@@ -12,24 +12,23 @@ import {
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
 import { supabase } from "@/utils/supabase";
+import { GroupeNames } from "@/utils/types";
 import { Novel } from "@/utils/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { ActionSheetIOS, Alert, Dimensions } from "react-native";
 import DraggableFlatList, {
   DraggableFlatListProps,
 } from "react-native-draggable-flatlist";
+import { FadeInRight } from "react-native-reanimated";
 export const WindowWidth = Dimensions.get("window").width;
 
-const GroupeView = <
-  T extends "plot_groups" | "doc_groups" | "groups",
-  U extends Novel[T][number]
->(
+export const GroupeList = <T extends GroupeNames, U extends Novel[T][number]>(
   props: {
     novel_id: string;
     groupe_name: T;
-    groupeDisplayName: string;
-  } & DraggableFlatListProps<U>
+    renderItem?: DraggableFlatListProps<U>["renderItem"];
+  } & Omit<DraggableFlatListProps<U>, "renderItem">
 ) => {
   const [loading, setLoading] = useState(false);
   const { novels, groupeRecord } = useEstate("persist");
@@ -37,7 +36,6 @@ const GroupeView = <
     style,
     novel_id,
     groupe_name,
-    groupeDisplayName,
     ListFooterComponent,
     contentContainerStyle,
     renderItem,
@@ -77,8 +75,11 @@ const GroupeView = <
           0,
           selected &&
             groupeList.reduce((acc, v, i) => {
-              acc += 40 + groupeRecord[groupeList[i]].title.length * 20;
-
+              try {
+                acc += 40 + groupeRecord[groupeList[i]].title.length * 20;
+              } catch (error) {
+                console.log("^_^ Log \n file: GroupeView.tsx:79 \n error:", error);
+              }
               return acc;
             }, 0) > WindowWidth
             ? groupeList?.indexOf(selected)
@@ -189,7 +190,7 @@ const GroupeView = <
             style={{
               marginLeft: 10,
               height: 40,
-              width: 30 + groupeRecord[props.item].title.length * 20,
+              // width: 30 + groupeRecord[props.item].title.length * 20,
               borderRadius: 100,
               justifyContent: "center",
               alignItems: "center",
@@ -218,7 +219,7 @@ const GroupeView = <
                 async (title) => {
                   createGroupe({
                     groupe_name,
-                    novel_id: String(novel_id),
+                    novel_id: novel_id,
                     title,
                     onLoading: setLoading,
                   });
@@ -245,6 +246,7 @@ const GroupeView = <
         ))
       }
       contentContainerStyle={[{ alignItems: "center" }, contentContainerStyle]}
+      itemExitingAnimation={FadeInRight.duration(500)}
     />
   );
 };

@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, Pressable, View } from "react-native";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
-import { Inputs } from "@/app/[novel_id]/Inputs";
+import { Inputs } from "@/components/Inputs";
 
 export const DocItem = ({
   isActive,

@@ -1,16 +1,17 @@
 import Text from "@/components/CustomText";
 import TextInput from "@/components/CustomTextInput";
+import { GroupeList } from "@/components/GroupeView";
 import { HorizontalListItem } from "@/components/HorizontalListItem";
+import { createGroupe } from "@/functions/createGroupe";
 import { createPlot } from "@/functions/createPlot";
-import { createPlotGroupe } from "@/functions/createPlotGroupe";
-import { deletePlotGroupe } from "@/functions/deletePlotGroupe";
+import { deletePlot } from "@/functions/deletePlot";
 import {
   setEstates,
+  setGroupeRecord,
   setNovel,
   setPlot,
-  setPlotGroups,
-  setSelectedPlotGroups,
   useEstate,
+  useSelectedGroupe,
 } from "@/utils/estate";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
@@ -37,19 +38,14 @@ const WindowWidth = Dimensions.get("window").width;
 
 export default function Page() {
   const { session } = useEstate("main");
-  const {
-    plots,
-    novels,
-    setEstate,
-    plotGroups,
-    selectedPlotGroupe,
-  } = useEstate("persist");
+  const { plots, novels, setEstate, groupeRecord } = useEstate("persist");
   const [loading, setLoading] = useState(false);
   const { novel_id } = useGlobalSearchParams();
   const navigation = useNavigation();
   const headerHeight = useHeaderHeight();
   const novel = novels[String(novel_id)];
-  const selected = selectedPlotGroupe[String(novel_id)] || "";
+  const selected = useSelectedGroupe(novel_id, "plot_groups");
+  console.log("^_^ ::: file: plots.tsx:48 ::: selected:\n", selected);
   const isAuthor = isRemoteNovel(novel_id);
   const bottomTabHeight = useBottomTabBarHeight();
 
@@ -71,14 +67,14 @@ export default function Page() {
   useEffect(() => {
     if (
       selected &&
-      (!plotGroups[selected]?.plots.length ||
-        plots[plotGroups[selected]?.plots?.concat()?.pop() || ""]?.text)
+      (!groupeRecord[selected]?.list.length ||
+        plots[groupeRecord[selected]?.list?.concat()?.pop() || ""]?.text)
     ) {
       createPlot({ novel_id: String(novel_id) });
     }
   }, [
-    plotGroups[selected || ""]?.plots,
-    plots[plotGroups[selected || ""]?.plots?.concat()?.pop() || ""]?.text,
+    groupeRecord[selected || ""]?.list,
+    plots[groupeRecord[selected || ""]?.list?.concat()?.pop() || ""]?.text,
   ]);
 
   async function getPlotGroups() {
@@ -98,7 +94,7 @@ export default function Page() {
         if (data) {
           setEstates.persist(
             {
-              plotGroups: (cv) => {
+              groupeRecord: (cv) => {
                 data.forEach((groupe) => {
                   cv[groupe.id] = groupe;
                 });
@@ -110,6 +106,7 @@ export default function Page() {
         }
       }
     } catch (error) {
+      console.error("^_^ ::: file: plots.tsx:108 ::: error:\n", error);
       if (error instanceof Error) {
         Alert.alert(error.message);
       }
@@ -146,6 +143,7 @@ export default function Page() {
         }
       }
     } catch (error) {
+      console.error("^_^ ::: file: plots.tsx:145 ::: error:\n", error);
       if (error instanceof Error) {
         Alert.alert(error.message);
       }
@@ -153,61 +151,7 @@ export default function Page() {
       setLoading(false);
     }
   }
-  const onDeleteItem = (item: string, selected: string) => {
-    const plot = plots[item];
-    const plot_groups = novels[String(novel_id)].plot_groups.filter(
-      (value) => value !== item
-    );
-    const groupeList = plotGroups[selected].plots.filter((value) => value !== item);
-    if (plot) {
-      setEstate(
-        {
-          plots: (cv) => {
-            delete cv[item];
-            return cv;
-          },
-          novels: (cv) => {
-            cv[String(novel_id)].plot_groups = plot_groups;
-            return cv;
-          },
-          plotGroups: (cv) => {
-            if (cv[selected]) {
-              cv[selected].plots = groupeList;
-            }
-            return cv;
-          },
-        },
-        true
-      );
-    }
-    if (isAuthor) {
-      supabase
-        .from("plots")
-        .delete()
-        .eq("id", item)
-        .then(({ error }) => {
-          if (error) {
-          } else {
-            supabase
-              .from("novels")
-              .update({ plot_groups: plot_groups })
-              .eq("id", String(novel_id))
-              .then((res) => {
-                console.log("^_^ Log \n file: index.tsx:203 \n res:", res);
-              });
-            if (plotGroups[selected]) {
-              supabase
-                .from("plot_groups")
-                .update({ plots: groupeList })
-                .eq("id", selected)
-                .then((res) => {
-                  console.log("^_^ Log \n file: index.tsx:203 \n res:", res);
-                });
-            }
-          }
-        });
-    }
-  };
+
   if (!novel) return null;
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
@@ -221,151 +165,11 @@ export default function Page() {
           zIndex: 1,
         }}
       >
-        <DraggableFlatList
+        <GroupeList
           data={novel.plot_groups}
           keyExtractor={(item) => item}
-          onDragEnd={async ({ data }) => {
-            setNovel(novel_id, (cv) => {
-              cv.plot_groups = data;
-              return cv;
-            });
-            if (isAuthor) {
-              await supabase
-                .from("novels")
-                .update({
-                  plot_groups: data,
-                })
-                .eq("id", String(novel_id));
-            }
-          }}
-          style={{ height: "100%" }}
-          initialScrollIndex={Math.max(
-            0,
-            selected &&
-              novel.plot_groups.reduce((acc, v, i) => {
-                acc += 40 + plotGroups[novel.plot_groups[i]].title.length * 20;
-
-                return acc;
-              }, 0) > WindowWidth
-              ? novel.plot_groups?.indexOf(selected)
-              : 0
-          )}
-          showsHorizontalScrollIndicator={false}
-          getItemLayout={(data, index) => {
-            return {
-              length: 40 + plotGroups[novel.plot_groups[index]].title.length * 20,
-              offset: novel.plot_groups.reduce((acc, v, i) => {
-                if (i < index) {
-                  acc += 40 + plotGroups[novel.plot_groups[i]].title.length * 20;
-                }
-                return acc;
-              }, 0), //90
-              index,
-            };
-          }}
-          renderItem={({ item, ...props }) => (
-            <HorizontalListItem
-              key={item}
-              item={item}
-              {...props}
-              onPressSelected={() => {
-                ActionSheetIOS.showActionSheetWithOptions(
-                  {
-                    options: [
-                      "Cancel",
-                      n({ default: "Rename", jp: "グループ名変更" }),
-                      n({ default: "Delete", jp: "グループ削除" }),
-                    ],
-                    cancelButtonIndex: 0,
-                    destructiveButtonIndex: 2,
-                    userInterfaceStyle: "dark",
-                  },
-                  (buttonIndex) => {
-                    try {
-                      if (buttonIndex === 0) {
-                        // cancel action
-                      } else if (buttonIndex === 1) {
-                        Alert.prompt(
-                          n({
-                            default: "Rename the groupe",
-                            jp: "グループ名を変更",
-                          }),
-                          "",
-                          async (title) => {
-                            if (session?.user?.id === novels[String(novel_id)].user_id) {
-                              const { error } = await supabase
-                                .from("episode_groups")
-                                .update({
-                                  title,
-                                })
-                                .eq("id", item);
-                              if (error) {
-                                throw error;
-                              }
-                            }
-                            setPlotGroups(item, (cv) => {
-                              cv.title = title;
-                              return cv;
-                            });
-                          },
-                          undefined,
-                          plotGroups[item].title || ""
-                        );
-                      } else if (buttonIndex === 2) {
-                        Alert.alert(
-                          n({
-                            default: "Delete the groupe",
-                            jp: "グループを削除",
-                          }),
-                          n({
-                            default:
-                              "Are you sure you want to delete this groupe?\nNote that the plots contained in the groupe will not be deleted. If you wish to delete plots, please delete it individually.",
-                            jp: "本当にこのグループを削除してよろしいですか？\n※グループに含まれるプロットは削除されません。プロットを削除したい場合は個別に削除して下さい。",
-                          }),
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            {
-                              text: "Delete",
-                              style: "destructive",
-                              onPress: async () => {
-                                deletePlotGroupe({
-                                  novel_id: String(novel_id),
-                                  plot_groupe_id: item,
-                                });
-                              },
-                            },
-                          ]
-                        );
-                      }
-                    } catch (error) {
-                      console.error("^_^ Log \n file: Account.tsx:69 \n error:", error);
-                      if (error instanceof Error) {
-                        Alert.alert(error.message);
-                      }
-                    }
-                  }
-                );
-              }}
-              onSelected={() => {
-                setSelectedPlotGroups(novel_id, item);
-              }}
-              isSelected={selected === item}
-              style={{
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#000030",
-                borderRadius: 100,
-                marginLeft: 10,
-                height: 40,
-                width: 30 + plotGroups[item]?.title.length * 20,
-              }}
-            >
-              <Text style={{ fontSize: 20 }} ellipsizeMode="tail">
-                {plotGroups[item]?.title}
-              </Text>
-            </HorizontalListItem>
-          )}
-          horizontal
+          novel_id={String(novel_id)}
+          groupe_name={"plot_groups"}
           ListFooterComponent={() => (
             <HorizontalListItem
               item={null}
@@ -378,7 +182,8 @@ export default function Page() {
                   }),
                   undefined,
                   async (title) => {
-                    createPlotGroupe({
+                    createGroupe({
+                      groupe_name: "plot_groups",
                       novel_id: String(novel_id),
                       title,
                       onLoading: setLoading,
@@ -404,27 +209,23 @@ export default function Page() {
               )}
             </HorizontalListItem>
           )}
-          contentContainerStyle={{ alignItems: "center" }}
-          itemExitingAnimation={FadeInRight.duration(500)}
         />
       </BlurView>
       <DraggableFlatList
         style={{ paddingTop: headerHeight + 50 }}
         keyExtractor={(item) => item}
-        data={plotGroups[selected]?.plots || []}
-        // id={String(selected)}
+        data={groupeRecord[selected || ""]?.list || []}
         onDragEnd={async ({ data }) => {
-          setPlotGroups(selected, (cv) => {
-            cv.plots = data;
-            return cv;
-          });
-          if (isAuthor) {
-            await supabase
-              .from("plot_groups")
-              .update({
-                plots: data,
-              })
-              .eq("id", selected);
+          if (selected) {
+            setGroupeRecord(selected, "list", data);
+            if (isAuthor) {
+              await supabase
+                .from("plot_groups")
+                .update({
+                  list: data,
+                })
+                .eq("id", selected);
+            }
           }
         }}
         renderItem={({ item, drag, isActive }) => (
@@ -466,7 +267,7 @@ export default function Page() {
                         options: [
                           "Cancel",
 
-                          ...novel.plot_groups.map((id) => plotGroups[id].title),
+                          ...novel.plot_groups.map((id) => groupeRecord[id].title),
                         ],
                         cancelButtonIndex: 0,
                         userInterfaceStyle: "dark",
@@ -478,16 +279,16 @@ export default function Page() {
                           const i = buttonIndex - 1;
                           setEstate(
                             {
-                              plotGroups: (cv) => {
+                              groupeRecord: (cv) => {
                                 const currentGroupe = plots[item].plot_groupe_id;
                                 if (currentGroupe)
-                                  cv[currentGroupe].plots = cv[
-                                    currentGroupe
-                                  ].plots.filter((id) => id !== item);
+                                  cv[currentGroupe].list = cv[currentGroupe].list.filter(
+                                    (id) => id !== item
+                                  );
                                 const target = cv[novel.plot_groups[i]];
-                                if (!plots[target?.plots?.concat()?.pop() || ""].text)
-                                  target.plots.pop();
-                                target.plots.push(item);
+                                if (!plots[target?.list?.concat()?.pop() || ""].text)
+                                  target.list.pop();
+                                target.list.push(item);
                                 return cv;
                               },
                               plots: (cv) => {
@@ -501,7 +302,7 @@ export default function Page() {
                       }
                     );
                   } else if (nativeEvent.index === 1) {
-                    onDeleteItem(item, selected);
+                    deletePlot({ novel_id: String(novel_id), plot_id: item });
                   }
                 }}
               >
@@ -557,12 +358,7 @@ const ProtEditor = ({ plots, item }: { plots: Record<string, Plot>; item: string
   return (
     <TextInput
       value={plots[item]?.text}
-      onChangeText={(text) =>
-        setPlot(item, (cv) => {
-          cv.text = text;
-          return cv;
-        })
-      }
+      onChangeText={(text) => setPlot(item, (cv) => ({ ...cv, text }))}
       style={{ fontSize: 18 }}
       placeholder={n({ default: "Plot text", jp: "プロット" })}
       placeholderTextColor={"gray"}

@@ -4,14 +4,18 @@ import { HorizontalListItem } from "@/components/HorizontalListItem";
 import { createEpisode } from "@/functions/createEpisode";
 import { createEpisodeGroupe } from "@/functions/createEpisodeGroupe";
 import { deleteEpisode } from "@/functions/deleteEpisode";
-import { deleteEpisodeGroupe } from "@/functions/deleteEpisodeGroupe";
+// import { deleteEpisodeGroupe } from "@/functions/deleteEpisodeGroupe";
 import { moveEpisodeGroupe } from "@/functions/moveEpisodeGroupe";
 import {
+  clearEstate,
   setEpisode,
-  setEpisodeGroups,
+  // setEpisodeGroups,
+  setGroupeRecord,
   setNovel,
-  setSelectedEpisodeGroups,
+  // setSelectedEpisodeGroups,
+  setSelectedGroupe,
   useEstate,
+  useSelectedGroupe,
 } from "@/utils/estate";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
@@ -20,12 +24,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { BlurView } from "expo-blur";
-import {
-  router,
-  useFocusEffect,
-  useGlobalSearchParams,
-  useNavigation,
-} from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActionSheetIOS,
@@ -41,29 +40,26 @@ import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatli
 import { FadeInRight, FadeInUp, FadeOutUp } from "react-native-reanimated";
 import { getEpisodeGroups } from "../../functions/getEpisodeGroups";
 import { getEpisodes } from "../../functions/getEpisodes";
+import { useGlobalSearchParamsString } from "../../hooks/useGlobalSearchParamsString";
+import { GroupeList } from "@/components/GroupeView";
+import { createGroupe } from "@/functions/createGroupe";
 const WindowWidth = Dimensions.get("window").width;
 
 export default function Page() {
-  const {
-    episodes,
-    novels,
-    setEstate,
-    episodeGroups,
-    selectedEpisodeGroupe: selectedGroupe,
-  } = useEstate("persist");
+  const { episodes, novels, setEstate, groupeRecord } = useEstate("persist");
   const [loading, setLoading] = useState(false);
-  const { novel_id } = useGlobalSearchParams();
+  const { novel_id } = useGlobalSearchParamsString();
   const navigation = useNavigation();
   const headerHeight = useHeaderHeight();
-  const novel = novels[String(novel_id)];
-  const selected = selectedGroupe[String(novel_id)];
+  const novel = novels[novel_id];
+  const selected = useSelectedGroupe(novel_id, "groups");
   const isAuthor = isRemoteNovel(novel_id);
   const bottomTabHeight = useBottomTabBarHeight();
 
   useFocusEffect(
     useCallback(() => {
       navigation.getParent()?.setOptions({
-        title: novels[String(novel_id)]?.title || "",
+        title: novels[novel_id]?.title || "",
         headerRight: () => (
           <AnimatedIcon
             style={{
@@ -125,158 +121,17 @@ export default function Page() {
           zIndex: 1,
         }}
       >
-        <DraggableFlatList
-          keyExtractor={(item) => item}
+        <GroupeList
           data={novel.groups}
-          style={{ height: "100%" }}
-          onDragEnd={async ({ data }) => {
-            setNovel(novel_id, (cv) => {
-              cv.groups = data;
-              return cv;
-            });
-            if (isAuthor) {
-              await supabase
-                .from("novels")
-                .update({
-                  groups: data,
-                })
-                .eq("id", String(novel_id));
-            }
-          }}
-          initialScrollIndex={
-            selected &&
-            novel.groups.reduce((acc, v, i) => {
-              acc += 40 + episodeGroups[novel.groups[i]].title.length * 20;
-
-              return acc;
-            }, 90) > WindowWidth
-              ? novel.groups?.indexOf(selected)
-              : 0
-          }
-          showsHorizontalScrollIndicator={false}
-          getItemLayout={(data, index) => {
-            return {
-              length: 40 + episodeGroups[novel.groups[index]].title.length * 20,
-              offset: novel.groups.reduce((acc, v, i) => {
-                if (i < index) {
-                  acc += 40 + episodeGroups[novel.groups[i]].title.length * 20;
-                }
-                return acc;
-              }, 0), //90
-              index,
-            };
-          }}
-          renderItem={(props) => (
-            <HorizontalListItem
-              key={props.item}
-              {...props}
-              isSelected={selected === props.item}
-              onPressSelected={() => {
-                ActionSheetIOS.showActionSheetWithOptions(
-                  {
-                    options: [
-                      "Cancel",
-                      n({ default: "Rename", jp: "フォルダ名変更" }),
-                      n({ default: "Delete", jp: "フォルダー削除" }),
-                    ],
-                    cancelButtonIndex: 0,
-                    destructiveButtonIndex: 2,
-                    userInterfaceStyle: "dark",
-                  },
-                  (buttonIndex) => {
-                    try {
-                      switch (buttonIndex) {
-                        case 0: // cancel action
-                          break;
-                        case 1:
-                          Alert.prompt(
-                            n({
-                              default: "Rename the folder",
-                              jp: "フォルダ名を変更",
-                            }),
-                            "",
-                            async (title) => {
-                              if (isRemoteNovel(novel_id)) {
-                                await supabase
-                                  .from("episode_groups")
-                                  .update({
-                                    title,
-                                  })
-                                  .eq("id", props.item)
-                                  .then(({ data, error }) => {
-                                    if (error) throw error;
-                                  });
-                              }
-                              setEpisodeGroups(props.item, (cv) => {
-                                cv.title = title;
-                                return cv;
-                              });
-                            },
-                            undefined,
-                            episodeGroups[props.item].title || ""
-                          );
-                          break;
-                        case 2:
-                          Alert.alert(
-                            n({
-                              default: "Delete the folder",
-                              jp: "フォルダーを削除",
-                            }),
-                            n({
-                              default:
-                                "Are you sure you want to delete this folder?\nNote that the episodes contained in the folder will not be deleted. If you wish to delete episodes, please delete it individually.",
-                              jp: "本当にこのフォルダーを削除してよろしいですか？\n※フォルダーに含まれるエピソードは削除されません。エピソードを削除したい場合は個別に削除して下さい。",
-                            }),
-                            [
-                              { text: "Cancel", style: "cancel" },
-                              {
-                                text: "Delete",
-                                style: "destructive",
-                                onPress: async () =>
-                                  deleteEpisodeGroupe({
-                                    novel_id: String(novel_id),
-                                    episode_groupe_id: props.item,
-                                  }),
-                              },
-                            ]
-                          );
-                          break;
-                        default:
-                          break;
-                      }
-                    } catch (error) {
-                      console.error("^_^ Log \n file: Account.tsx:69 \n error:", error);
-                      if (error instanceof Error) {
-                        Alert.alert(error.message);
-                      }
-                    }
-                  }
-                );
-              }}
-              onSelected={(item) => {
-                setSelectedEpisodeGroups(novel_id, item);
-              }}
-              style={{
-                marginLeft: 10,
-                height: 40,
-                width: 30 + episodeGroups[props.item]?.title.length * 20,
-                borderRadius: 100,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontSize: 20 }} ellipsizeMode="tail">
-                {episodeGroups[props.item]?.title}
-              </Text>
-            </HorizontalListItem>
-          )}
-          horizontal
+          keyExtractor={(item) => item}
+          novel_id={novel_id}
+          groupe_name={"groups"}
           ListHeaderComponent={() => (
             <HorizontalListItem
               item={null}
               isSelected={!selected}
               onPress={() => {
-                setSelectedEpisodeGroups(novel_id, null);
+                setSelectedGroupe(novel_id, "groups", null);
               }}
               style={{
                 justifyContent: "center",
@@ -301,8 +156,9 @@ export default function Page() {
                   n({ default: "Create a new folder", jp: "フォルダを作成" }),
                   undefined,
                   async (title) => {
-                    createEpisodeGroupe({
-                      novel_id: String(novel_id),
+                    createGroupe({
+                      groupe_name: "groups",
+                      novel_id,
                       title,
                       onLoading: setLoading,
                     });
@@ -310,7 +166,6 @@ export default function Page() {
                 );
               }}
               style={{
-                // height: "100%",
                 paddingHorizontal: 10,
                 justifyContent: "center",
                 alignItems: "center",
@@ -327,9 +182,6 @@ export default function Page() {
               )}
             </HorizontalListItem>
           )}
-          contentContainerStyle={{ alignItems: "center" }}
-          // itemEnteringAnimation={FadeInRight}
-          itemExitingAnimation={FadeInRight.duration(500)}
         />
       </BlurView>
 
@@ -339,21 +191,17 @@ export default function Page() {
         style={{ paddingTop: headerHeight + 50 }}
         keyExtractor={(item) => item}
         data={
-          (selected
-            ? episodeGroups[selected]?.episodes_list
-            : novels[String(novel_id)]?.episodes_list) || []
+          (selected ? groupeRecord[selected]?.list : novels[novel_id]?.episodes_list) ||
+          []
         }
         onDragEnd={async ({ data }) => {
           if (selected) {
-            setEpisodeGroups(selected, (cv) => {
-              cv.episodes_list = data;
-              return cv;
-            });
+            setGroupeRecord(selected, "list", data);
             if (isAuthor) {
               await supabase
                 .from("episode_groups")
                 .update({
-                  episodes_list: data,
+                  list: data,
                 })
                 .eq("id", selected);
             }
@@ -368,7 +216,7 @@ export default function Page() {
                 .update({
                   episodes_list: data,
                 })
-                .eq("id", String(novel_id));
+                .eq("id", novel_id);
             }
           }
         }}
@@ -410,34 +258,23 @@ export default function Page() {
                   },
                 ]}
                 onPress={({ nativeEvent }) => {
-                  switch (nativeEvent.index) {
-                    case 0:
-                      moveEpisodeGroupe({ novel_id, item });
-                      break;
-                    case 1:
-                      const currentGroupe = episodes[item].groupe;
-                      if (currentGroupe)
-                        setEpisodeGroups(currentGroupe, (cv) => {
-                          cv.episodes_list = cv.episodes_list.filter((id) => id !== item);
-                          return cv;
-                        });
+                  if (nativeEvent.index === 0) moveEpisodeGroupe({ novel_id, item });
+                  else if (nativeEvent.index === 1) {
+                    const currentGroupe = episodes[item].groupe;
+                    if (currentGroupe)
+                      setGroupeRecord(currentGroupe, "list", (cv) =>
+                        cv.filter((id) => id !== item)
+                      );
 
-                      setEpisode(item, (cv) => {
-                        cv.groupe = null;
-                        return cv;
-                      });
-
-                      break;
-                    case 2:
-                      deleteEpisode({
-                        novel_id: String(novel_id),
-                        episode_id: item,
-                      });
-                      break;
-
-                    default:
-                      break;
-                  }
+                    setEpisode(item, (cv) => {
+                      cv.groupe = null;
+                      return cv;
+                    });
+                  } else if (nativeEvent.index === 2)
+                    deleteEpisode({
+                      novel_id: String(novel_id),
+                      episode_id: item,
+                    });
                 }}
               >
                 <Pressable
@@ -485,8 +322,8 @@ export default function Page() {
             <Text style={{ fontSize: 16, textAlign: "center" }}>
               {selected
                 ? n({
-                    default: `There are no episodes in ${episodeGroups[selected].title}\nLet's add a new episode from the + icon on the right side of the header.`,
-                    jp: `${episodeGroups[selected].title}に分類された資料はありません。右上の＋アイコンから新しい資料を追加しましょう。`,
+                    default: `There are no episodes in ${groupeRecord[selected].title}\nLet's add a new episode from the + icon on the right side of the header.`,
+                    jp: `${groupeRecord[selected].title}に分類された資料はありません。右上の＋アイコンから新しい資料を追加しましょう。`,
                   })
                 : n({
                     default:
@@ -503,17 +340,3 @@ export default function Page() {
     </View>
   );
 }
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 40,
-    padding: 12,
-  },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: "stretch",
-  },
-  mt20: {
-    marginTop: 20,
-  },
-});

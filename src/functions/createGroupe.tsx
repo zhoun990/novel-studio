@@ -1,9 +1,4 @@
-import {
-  setGroupeRecord,
-  setNovel,
-  setSelectedGroupe,
-  store
-} from "@/utils/estate";
+import { setGroupeRecord, setNovel, setSelectedGroupe, store } from "@/utils/estate";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
 import { supabase } from "@/utils/supabase";
@@ -18,7 +13,6 @@ export async function createGroupe<T extends "plot_groups" | "doc_groups" | "gro
   onLoading = () => {},
 }: {
   groupe_name: T;
-
   novel_id: string;
   title: string;
   onLoading?: (isLoading: boolean) => void;
@@ -58,7 +52,6 @@ export async function createGroupe<T extends "plot_groups" | "doc_groups" | "gro
           user_id: null,
         };
     setGroupeRecord(data.id, data);
-    setSelectedGroupe(novel_id, groupe_name, data.id);
     const updatedNovel: { [k in typeof groupe_name]: Novel[k] } = isRemoteNovel(novel_id)
       ? await supabase
           .from("novels")
@@ -73,16 +66,17 @@ export async function createGroupe<T extends "plot_groups" | "doc_groups" | "gro
             return data;
           })
       : { [groupe_name]: novels[novel_id][groupe_name].concat(data.id) };
-    setNovel(novel_id, (cv) => {
-      cv[groupe_name] = updatedNovel[groupe_name];
-      cv.updated_at = new Date().toISOString();
-      return cv;
-    });
+    setNovel(novel_id, (cv) => ({
+      ...cv,
+      ...updatedNovel,
+      updated_at: new Date().toISOString(),
+    }));
+    setSelectedGroupe(novel_id, groupe_name, data.id);
   } catch (error) {
+    console.log("^_^ ::: file: createGroupe.tsx:77 ::: error:\n", error);
     if (error instanceof Error) {
       Alert.alert(error.message);
     }
-    console.log("err", error);
   } finally {
     onLoading(false);
   }

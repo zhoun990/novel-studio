@@ -6,7 +6,6 @@ import { n } from "@/utils/n";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { createDocGroupe } from "./createDocGroupe";
 import { createDoc } from "./createDoc";
-import { createPlotGroupe } from "./createPlotGroupe";
 import { Templates } from "@/utils/types";
 export async function createNovel({
   title,
@@ -63,17 +62,17 @@ export async function createNovel({
         };
     setNovel(data.id, data);
 
-    if (template === "basic") {
-      await createPlotGroupe({
-        novel_id: data.id,
-        title: n({ default: "Chapter I.", jp: "第一章" }),
-      });
-      await createDocGroupe({
-        novel_id: data.id,
-        title: n({ default: "Characters", jp: "登場人物" }),
-      });
-      await createDoc({ novel_id: data.id });
-    }
+    // if (template === "basic") {
+    //   await createPlotGroupe({
+    //     novel_id: data.id,
+    //     title: n({ default: "Chapter I.", jp: "第一章" }),
+    //   });
+    //   await createDocGroupe({
+    //     novel_id: data.id,
+    //     title: n({ default: "Characters", jp: "登場人物" }),
+    //   });
+    //   await createDoc({ novel_id: data.id });
+    // }
     router.push({
       pathname: "/[novel_id]",
       params: { novel_id: data.id },

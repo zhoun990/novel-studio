@@ -1,6 +1,6 @@
 import Text from "@/components/CustomText";
 import { createNovel } from "@/functions/createNovel";
-import { store, useEstate } from "@/utils/estate";
+import { clearEstate, store, useEstate } from "@/utils/estate";
 import { supabase } from "@/utils/supabase";
 import { NotoSansJP_500Medium } from "@expo-google-fonts/noto-sans-jp";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -11,6 +11,7 @@ import Constants from "expo-constants";
 import * as Font from "expo-font";
 import { useFonts } from "expo-font";
 import {
+  Slot,
   SplashScreen,
   Stack,
   router,
@@ -19,10 +20,19 @@ import {
 } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Animated, Image, Pressable, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  Animated,
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { n } from "../utils/n";
 import { AnimatedIcon } from "@/components/AnimatedIcon";
+import Main from "@/main/index.web";
 SplashScreen.preventAutoHideAsync();
 //@ts-expect-error
 console.log("isHerms", !!global.HermesInternal);
@@ -62,6 +72,9 @@ export default function Layout() {
   useEffect(() => {
     AsyncStorage.setItem("url", JSON.stringify({ pathname, params }));
   }, [pathname, params]);
+  // if (Platform.OS === "web") {
+  //   return <Main />;
+  // }
   return (
     <>
       <StatusBar style="light" />

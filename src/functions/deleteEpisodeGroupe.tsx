@@ -5,7 +5,7 @@ import {
 import { supabase } from "@/utils/supabase";
 import { Alert } from "react-native";
 import { isRemoteNovel } from "../utils/isRemoteNovel";
-export async function deleteEpisodeGroupe({
+ async function deleteEpisodeGroupe({
   novel_id,
   episode_groupe_id,
   onLoading = () => {},

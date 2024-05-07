@@ -2,7 +2,7 @@ import { setEstates, store } from "@/utils/estate";
 import { supabase } from "@/utils/supabase";
 import { Alert } from "react-native";
 import { isRemoteNovel } from "../utils/isRemoteNovel";
-export async function deleteDocGroupe({
+ async function deleteDocGroupe({
   novel_id,
   doc_groupe_id,
   onLoading = () => {},

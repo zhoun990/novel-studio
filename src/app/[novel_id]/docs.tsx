@@ -1,19 +1,16 @@
 import { AnimatedIcon } from "@/components/AnimatedIcon";
 import Text from "@/components/CustomText";
-import { HorizontalListItem } from "@/components/HorizontalListItem";
+import { GroupeList } from "@/components/GroupeView";
 import { createDoc } from "@/functions/createDoc";
-import { createDocGroupe } from "@/functions/createDocGroupe";
 import {
-  setDocGroups,
   setEstates,
-  setNovel,
-  setSelectedGroupe,
+  setGroupeRecord,
   useEstate,
+  useSelectedGroupe,
 } from "@/utils/estate";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
 import { n } from "@/utils/n";
 import { supabase } from "@/utils/supabase";
-import { SelectedGroups } from "@/utils/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -29,20 +26,10 @@ import {
 } from "react-native";
 import ContextMenu from "react-native-context-menu-view";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
-import {
-  FadeIn,
-  useAnimatedRef,
-  useAnimatedStyle,
-  withDelay,
-  withSpring,
-} from "react-native-reanimated";
 import { DocItem } from "../../components/DocItem";
-const WindowWidth = Dimensions.get("window").width;
-
 export default function Page() {
   const { session } = useEstate("main");
-  const { docs, novels, setEstate, groupeRecord,  } =
-    useEstate("persist");
+  const { docs, novels, setEstate, groupeRecord } = useEstate("persist");
   const [dndEnabled, setDndEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [activeDocId, setActiveDocId] = useState<null | string>(null);
@@ -52,6 +39,7 @@ export default function Page() {
   const novel = novels[String(novel_id)];
   const isAuthor = isRemoteNovel(novel_id);
   const bottomTabHeight = useBottomTabBarHeight();
+  const selected = useSelectedGroupe(novel_id, "doc_groups");
 
   useFocusEffect(
     useCallback(() => {
@@ -163,7 +151,7 @@ export default function Page() {
     const doc_groups = novels[String(novel_id)].doc_groups.filter(
       (value) => value !== item
     );
-    const groupeList = groupeRecord[selected].docs.filter((value) => value !== item);
+    const groupeList = groupeRecord[selected].list.filter((value) => value !== item);
     if (doc) {
       setEstate(
         {
@@ -177,7 +165,7 @@ export default function Page() {
           },
           groupeRecord: (cv) => {
             if (cv[selected]) {
-              cv[selected].docs = groupeList;
+              cv[selected].list = groupeList;
             }
             return cv;
           },
@@ -203,7 +191,7 @@ export default function Page() {
             if (groupeRecord[selected]) {
               supabase
                 .from("doc_groups")
-                .update({ docs: groupeList })
+                .update({ list: groupeList })
                 .eq("id", selected)
                 .then((res) => {
                   console.log("^_^ Log \n file: index.tsx:203 \n res:", res);
@@ -226,200 +214,25 @@ export default function Page() {
           zIndex: 1,
         }}
       >
-        <DraggableFlatList
+        <GroupeList
           data={novel.doc_groups}
           keyExtractor={(item) => item}
-          style={{ height: "100%" }}
-          onDragEnd={async ({ data }) => {
-            setNovel(novel_id, (cv) => {
-              cv.doc_groups = data;
-              return cv;
-            });
-            if (isAuthor) {
-              await supabase
-                .from("novels")
-                .update({
-                  doc_groups: data,
-                })
-                .eq("id", String(novel_id));
-            }
-          }}
-          initialScrollIndex={Math.max(
-            0,
-            selected &&
-              groupeIdList.reduce((acc, v, i) => {
-                acc += 40 + groupeRecord[groupeIdList[i]].title.length * 20;
-
-                return acc;
-              }, 0) > WindowWidth
-              ? groupeIdList?.indexOf(selected)
-              : 0
-          )}
-          showsHorizontalScrollIndicator={false}
-          getItemLayout={(data, index) => {
-            return {
-              length: 40 + groupeRecord[groupeIdList[index]].title.length * 20,
-              offset: groupeIdList.reduce((acc, v, i) => {
-                if (i < index) {
-                  acc += 40 + groupeRecord[groupeIdList[i]].title.length * 20;
-                }
-                return acc;
-              }, 0), //90
-              index,
-            };
-          }}
-          renderItem={(props) => (
-            <HorizontalListItem
-              {...props}
-              key={props.item}
-              isSelected={selected === props.item}
-              onSelected={(item) => {
-                setSelectedGroupe(novel_id, item);
-              }}
-              onPressSelected={() => {
-                ActionSheetIOS.showActionSheetWithOptions(
-                  {
-                    options: [
-                      "Cancel",
-                      n({ default: "Rename", jp: "グループ名変更" }),
-                      n({ default: "Delete", jp: "グループ削除" }),
-                    ],
-                    cancelButtonIndex: 0,
-                    destructiveButtonIndex: 2,
-                    userInterfaceStyle: "dark",
-                  },
-                  (buttonIndex) => {
-                    try {
-                      if (buttonIndex === 0) {
-                        // cancel action
-                      } else if (buttonIndex === 1) {
-                        Alert.prompt(
-                          n({
-                            default: "Rename the groupe",
-                            jp: "グループ名を変更",
-                          }),
-                          "",
-                          async (title) => {
-                            if (isRemoteNovel(novel_id)) {
-                              await supabase
-                                .from("doc_groups")
-                                .update({
-                                  title,
-                                })
-                                .eq("id", props.item)
-                                .then(({ error }) => {
-                                  if (error) throw error;
-                                });
-                            }
-                            setDocGroups(props.item, (cv) => {
-                              cv.title = title;
-                              return cv;
-                            });
-                          },
-                          undefined,
-                          groupeRecord[props.item].title || ""
-                        );
-                      } else if (buttonIndex === 2) {
-                        Alert.alert(
-                          n({
-                            default: "Delete the groupe",
-                            jp: "グループを削除",
-                          }),
-                          n({
-                            default:
-                              "Are you sure you want to delete this groupe?\nNote that the docs contained in the groupe will not be deleted. If you wish to delete docs, please delete it individually.",
-                            jp: "本当にこのグループを削除してよろしいですか？\n※グループに含まれるプロットは削除されません。プロットを削除したい場合は個別に削除して下さい。",
-                          }),
-                          [
-                            { text: "Cancel", style: "cancel" },
-                            {
-                              text: "Delete",
-                              style: "destructive",
-                              onPress: async () => {},
-                            },
-                          ]
-                        );
-                      }
-                    } catch (error) {
-                      console.error("^_^ Log \n file: Account.tsx:69 \n error:", error);
-                      if (error instanceof Error) {
-                        Alert.alert(error.message);
-                      }
-                    }
-                  }
-                );
-              }}
-              style={{
-                marginLeft: 10,
-                height: 40,
-                width: 30 + groupeRecord[props.item].title.length * 20,
-                borderRadius: 100,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <Text style={{ fontSize: 20 }} ellipsizeMode="tail">
-                {groupeRecord[props.item]?.title}
-              </Text>
-            </HorizontalListItem>
-          )}
-          horizontal
-          ListFooterComponent={() => (
-            <HorizontalListItem
-              item={null}
-              onPress={() => {
-                if (loading) return;
-                Alert.prompt(
-                  n({
-                    default: "Create a new document groupe",
-                    jp: "分類グループを作成",
-                  }),
-                  undefined,
-                  async (title) => {
-                    createDocGroupe({
-                      novel_id: String(novel_id),
-                      title,
-                      onLoading: setLoading,
-                    });
-                  }
-                );
-              }}
-              style={{
-                // height: "100%",
-                paddingHorizontal: 10,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "#000030",
-                borderRadius: 100,
-                marginHorizontal: 10,
-                flexDirection: "row",
-                height: 40,
-              }}
-            >
-              <Ionicons name="add" size={30} color="#F0F0F0" />
-              {!groupeIdList.length && (
-                <Text>{n({ default: "New Document Groupe", jp: "分類グループ" })}</Text>
-              )}
-            </HorizontalListItem>
-          )}
-          contentContainerStyle={{ alignItems: "center" }}
+          novel_id={String(novel_id)}
+          groupe_name={"doc_groups"}
         />
       </BlurView>
       {selected && (
         <DraggableFlatList
           style={{ paddingTop: headerHeight + 50 }}
           keyExtractor={(item) => item}
-          data={groupeRecord[selected]?.docs || []}
+          data={groupeRecord[selected]?.list || []}
           onDragEnd={async ({ data }) => {
-            setDocGroups(selected, (cv) => {
-              cv.docs = data;
-              return cv;
-            });
+            setGroupeRecord(selected, "list", data);
             if (isAuthor) {
               await supabase
                 .from("doc_groups")
                 .update({
-                  docs: data,
+                  list: data,
                 })
                 .eq("id", selected);
             }
@@ -467,7 +280,7 @@ export default function Page() {
                         {
                           options: [
                             "Cancel",
-                            ...groupeIdList.map((id) => groupeRecord[id].title),
+                            ...novel.doc_groups.map((id) => groupeRecord[id].title),
                           ],
                           cancelButtonIndex: 0,
                           userInterfaceStyle: "dark",
@@ -482,12 +295,12 @@ export default function Page() {
                                 groupeRecord: (cv) => {
                                   const currentGroupe = docs[item].doc_groupe_id;
                                   if (currentGroupe)
-                                    cv[currentGroupe].docs = cv[
+                                    cv[currentGroupe].list = cv[
                                       currentGroupe
-                                    ].docs.filter((id) => id !== item);
-                                  const target = cv[groupeIdList[i]];
+                                    ].list.filter((id) => id !== item);
+                                  const target = cv[novel.doc_groups[i]];
                                   try {
-                                    target.docs.push(item);
+                                    target.list.push(item);
                                   } catch (error) {
                                     console.log(
                                       "^_^ Log \n file: docs.tsx:532 \n error:",
@@ -498,7 +311,7 @@ export default function Page() {
                                   return cv;
                                 },
                                 docs: (cv) => {
-                                  cv[item].doc_groupe_id = groupeIdList[i];
+                                  cv[item].doc_groupe_id = novel.doc_groups[i];
                                   return cv;
                                 },
                               },

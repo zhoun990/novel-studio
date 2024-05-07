@@ -22,6 +22,7 @@ import { BlurHeader } from "@/components/BlurHeader";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { n } from "@/utils/n";
 import { BlurView } from "expo-blur";
+import { isRemoteNovel } from "@/utils/isRemoteNovel";
 
 const iPhoneWidth = Dimensions.get("window").width;
 const iPhoneHeight = Dimensions.get("window").height;
@@ -84,7 +85,7 @@ export default function Page() {
               "",
               async (title) => {
                 try {
-                  if (session?.user?.id === novels[String(novel_id)].user_id) {
+                  if (isRemoteNovel(novel_id)) {
                     const { error } = await supabase
                       .from("episodes")
                       .update({
@@ -95,17 +96,18 @@ export default function Page() {
                       throw error;
                     }
                   }
-                  setEstate({
-                    episodes: (cv) => {
-                      cv[String(episode_id)].title = title;
-                      return cv;
+                  setEstate(
+                    {
+                      episodes: (cv) => {
+                        cv[String(episode_id)].title = title;
+                        return cv;
+                      },
                     },
-                  });
+                    true
+                  );
                   nv.getParent()?.setOptions({
                     headerTitle: () => (
-                      <Text style={{ fontSize: 20 }}>
-                        {episode.title}
-                      </Text>
+                      <Text style={{ fontSize: 20 }}>{episode.title}</Text>
                     ),
                   });
                 } catch (error) {
@@ -141,7 +143,7 @@ export default function Page() {
     try {
       setLoading(true);
 
-      if (session?.user?.id === novels[String(novel_id)].user_id) {
+      if (isRemoteNovel(novel_id)) {
         const { error } = await supabase
           .from("episodes")
           .update({

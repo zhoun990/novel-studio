@@ -1,4 +1,4 @@
-import { setEstates } from "@/utils/estate";
+import { setEstates, setGroupeRecord } from "@/utils/estate";
 import { supabase } from "@/utils/supabase";
 import { Alert } from "react-native";
 import { isRemoteNovel } from "@/utils/isRemoteNovel";
@@ -25,7 +25,7 @@ export async function getEpisodeGroups({
 			if (data) {
 				setEstates.persist(
 					{
-						episodeGroups: (cv) => {
+						groupeRecord: (cv) => {
 							data.forEach((groupe) => {
 								cv[groupe.id] = groupe;
 							});
